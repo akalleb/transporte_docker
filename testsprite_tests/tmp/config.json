@@ -1,0 +1,19 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3001",
+  "loginUser": "arthurkalleb@protonmail.com",
+  "loginPassword": "12345678",
+  "executionArgs": {
+    "projectName": "transporte 2.0",
+    "projectPath": "f:/python/transporte 2.0",
+    "testIds": [],
+    "additionalInstruction": "",
+    "envs": {
+      "API_KEY": "sk-user-ON22AhnYLoBgc9TQ_pqu3T4l6bW54IzIUGOrS6r8k3Gp5b_d33vvbL-B2-XJiro_pLWhJl2oH_zpxmWkE_QGejbS-dPHq_DfUDkVysFEaYAX7L8pTOX34loqqfJugqZ2uLo"
+    }
+  },
+  "serverPort": 34274,
+  "proxy": "http://62047b24-6336-416f-b4c2-1101c2ddb36d:s6Tcl1sST4HruPTQpBEun8Sb8NmFKQHs@tun.testsprite.com:8080"
+}

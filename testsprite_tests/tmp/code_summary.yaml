@@ -1,0 +1,96 @@
+version: "2"
+type: frontend
+tech_stack:
+  - TypeScript
+  - Nuxt 3
+  - Vue 3
+  - Tailwind CSS
+  - Supabase
+  - Lucide Vue Next
+routes:
+  - path: /
+    file: app/pages/index.vue
+    auth_required: true
+    description: Dashboard or landing page
+  - path: /login
+    file: app/pages/login.vue
+    auth_required: false
+    description: User login page
+  - path: /frota
+    file: app/pages/frota.vue
+    auth_required: true
+    description: Fleet management dashboard and CRUD
+  - path: /atendimento
+    file: app/pages/atendimento.vue
+    auth_required: true
+    description: WhatsApp attendance interface
+  - path: /agenda
+    file: app/pages/agenda.vue
+    auth_required: true
+    description: Scheduling interface
+  - path: /configuracoes
+    file: app/pages/configuracoes.vue
+    auth_required: true
+    description: System settings
+  - path: /perfil
+    file: app/pages/perfil.vue
+    auth_required: true
+    description: User profile management
+  - path: /esqueci-senha
+    file: app/pages/esqueci-senha.vue
+    auth_required: false
+    description: Password recovery request
+  - path: /redefinir-senha
+    file: app/pages/redefinir-senha.vue
+    auth_required: false
+    description: Password reset form
+features:
+  - name: Authentication
+    description: Login, password recovery, and profile management
+    files:
+      - app/pages/login.vue
+      - app/pages/esqueci-senha.vue
+      - app/pages/redefinir-senha.vue
+      - app/components/login/LoginForm.vue
+    entry_route: /login
+    user_interactions:
+      - Fill email and password
+      - Click Login button
+      - Click Forgot Password link
+    api_calls:
+      - method: POST
+        endpoint: /auth/v1/token
+    auth_required: false
+  - name: Fleet Management
+    description: Manage vehicles and maintenance records
+    files:
+      - app/pages/frota.vue
+      - app/modules/fleet/composables/useFleet.ts
+      - app/modules/fleet/components/FleetTable.vue
+      - app/modules/fleet/components/FleetFormDrawer.vue
+      - app/modules/fleet/components/MaintenanceFormDrawer.vue
+    entry_route: /frota
+    user_interactions:
+      - View vehicle list
+      - Add new vehicle
+      - Edit vehicle details
+      - Add maintenance record
+      - View maintenance history
+    api_calls:
+      - method: GET
+        endpoint: /rest/v1/vehicles
+      - method: POST
+        endpoint: /rest/v1/vehicles
+      - method: GET
+        endpoint: /rest/v1/maintenance_records
+    auth_required: true
+  - name: Attendance System
+    description: WhatsApp integration for support
+    files:
+      - app/pages/atendimento.vue
+    entry_route: /atendimento
+    user_interactions:
+      - View active chats
+      - Send messages
+    auth_required: true
+known_limitations: []

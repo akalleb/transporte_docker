@@ -1,0 +1,43 @@
+services:
+  app:
+    build: .
+    env_file:
+      - .env
+    environment:
+      # Esta URL deve ser acessível pelo navegador do usuário (Client-side)
+      WHATSAPP_API_URL: ${WHATSAPP_API_URL:-http://localhost:3001}
+      # URL interna para comunicação Server-side (Nuxt -> WhatsApp Server)
+      WHATSAPP_SERVER_URL: http://whatsapp-server:3001
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      - whatsapp-server
+
+  whatsapp-server:
+    build: ./whatsapp-server
+    env_file:
+      - .env
+    environment:
+      PORT: 3001
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+    ports:
+      - "${WHATSAPP_PORT:-3001}:3001"
+    volumes:
+      - whatsapp-auth:/usr/src/app/auth
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-app_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  whatsapp-auth:
+  db-data:

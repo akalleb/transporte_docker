@@ -1,0 +1,1653 @@
+[
+  {
+    "id": "TC001",
+    "title": "Solicitar redefinição de senha exibe confirmação de envio de email",
+    "description": "Verifica que ao informar um email na tela de recuperação, o sistema mostra mensagem de confirmação de solicitação enviada.",
+    "category": "Authentication",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /esqueci-senha"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/esqueci-senha\""
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Click Send reset request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Email enviado\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Verifique sua caixa de entrada\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "View vehicle list on Fleet page",
+    "description": "Verifies that an authenticated user can open /frota and see the vehicle list.",
+    "category": "Fleet Management",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/\""
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Frota\" navigation item"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/frota\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Vehicle list / Fleet table\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Add a new vehicle and see it in the list",
+    "description": "Verifies that a user can create a vehicle via the Add Vehicle form and the new item appears in the list.",
+    "category": "Fleet Management",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Frota\" navigation item"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Add Vehicle\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Add Vehicle form drawer\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Marca Teste\" into the \"Marca\" field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Modelo Teste\" into the \"Modelo\" field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"2022\" into the \"Ano\" field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"PLT-2E20\" into the \"Placa\" field"
+      },
+      {
+        "type": "action",
+        "description": "Select \"Carro\" from the \"Tipo\" dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Select \"Ativo\" from the \"Status\" dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Type \"12345\" into the \"Odômetro\" field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Save\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"PLT-2E20\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Edit an existing vehicle and verify updated details in list",
+    "description": "Verifies that a user can edit a selected vehicle and see the updated values reflected in the fleet list.",
+    "category": "Fleet Management",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Frota\" navigation item"
+      },
+      {
+        "type": "action",
+        "description": "Click on the first vehicle in the vehicle list"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Edit vehicle\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Edit Vehicle form drawer\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Modelo Editado\" into the \"Modelo\" field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Save\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Modelo Editado\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Add a maintenance record and verify it appears in maintenance history",
+    "description": "Verifies that a user can add a maintenance record for a vehicle and see it listed in the maintenance history.",
+    "category": "Fleet Management",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Frota\" navigation item"
+      },
+      {
+        "type": "action",
+        "description": "Click on the first vehicle in the vehicle list"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Add Maintenance\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Maintenance form drawer\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Type \"2026-02-21\" into the \"Data\" field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"250\" into the \"Custo\" field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Oficina Central\" into the \"Oficina\" field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Troca de óleo\" into the \"Descrição\" field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Save\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"View maintenance history\" control"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Troca de óleo\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "View maintenance history for a selected vehicle",
+    "description": "Verifies that a user can open a vehicle and view its maintenance history section/list.",
+    "category": "Fleet Management",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Frota\" navigation item"
+      },
+      {
+        "type": "action",
+        "description": "Click on the first vehicle in the vehicle list"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"View maintenance history\" control"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Maintenance history list\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Manutenções\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Maintenance form required-field validation",
+    "description": "Verifies that saving a maintenance record with required fields empty shows validation errors.",
+    "category": "Fleet Management",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Frota\" navigation item"
+      },
+      {
+        "type": "action",
+        "description": "Click on the first vehicle in the vehicle list"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Add Maintenance\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Maintenance form drawer\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Save\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Data\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Custo\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Vehicle form required-field validation",
+    "description": "Verifies that saving a vehicle with missing required fields shows validation messages and does not create a record.",
+    "category": "Fleet Management",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Frota\" navigation item"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Add Vehicle\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Add Vehicle form drawer\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Save\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Marca\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Placa\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "View attendance page with active chats list and connection status",
+    "description": "Verifies the attendance screen loads and shows active chats list and current WhatsApp connection status.",
+    "category": "Attendance System",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Atendimento\" in the main navigation menu"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/atendimento\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Conversas\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Status\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Open an active chat and send a message successfully",
+    "description": "Verifies an agent can open an active chat, send a message, and see it appear in the conversation thread.",
+    "category": "Attendance System",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Atendimento\" in the main navigation menu"
+      },
+      {
+        "type": "action",
+        "description": "Click on the first active chat in the chats list"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Olá, teste de envio\" into the message input field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Enviar\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Olá, teste de envio\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Prevent sending an empty message in an active chat",
+    "description": "Verifies validation blocks sending when the message input is empty.",
+    "category": "Attendance System",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Atendimento\" in the main navigation menu"
+      },
+      {
+        "type": "action",
+        "description": "Click on the first active chat in the chats list"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Enviar\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Mensagem obrigatória\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Show error when attempting to send while WhatsApp is disconnected",
+    "description": "Verifies the UI shows disconnected status and an error when sending a message while the service is disconnected.",
+    "category": "Attendance System",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Atendimento\" in the main navigation menu"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Desconectado\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click on the first open chat in the chats list"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Teste envio desconectado\" into the message input field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Enviar\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Não foi possível enviar\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Attendance page shows empty-state when there are no active chats",
+    "description": "Verifies the UI presents a clear empty-state message when the chat list has no active conversations.",
+    "category": "Attendance System",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Atendimento\" in the main navigation menu"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/atendimento\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Nenhuma conversa\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Connection status remains visible after selecting a chat",
+    "description": "Verifies the connection status indicator is still visible and readable after opening a conversation.",
+    "category": "Attendance System",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Atendimento\" in the main navigation menu"
+      },
+      {
+        "type": "action",
+        "description": "Click on the first active chat in the chats list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Status\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"connection status indicator\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Acessar Agenda e visualizar lista e filtros de status",
+    "description": "Verifica que o usuário autenticado consegue abrir a Agenda e ver a lista de agendamentos e filtros de status.",
+    "category": "Agenda",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the username/email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Entrar\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/\""
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Agenda\" item in the main navigation menu"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/agenda\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Status\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Criar novo agendamento com campos obrigatórios e ver status Pendente",
+    "description": "Verifica a criação de um novo agendamento preenchendo os campos obrigatórios e validando que ele aparece como Pendente na lista.",
+    "category": "Agenda",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the username/email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Entrar\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Agenda\" item in the main navigation menu"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Novo Agendamento\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Solicitante\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Maria Silva\" into the \"Solicitante\" field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Rua A, 100\" into the \"Origem\" field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Hospital Central\" into the \"Destino\" field"
+      },
+      {
+        "type": "action",
+        "description": "Select \"Veículo 1\" from the \"Veículo preferido\" dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Type \"2026-03-01 10:00\" into the \"Data/Hora\" field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Salvar\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Pendente\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Cancelar criação de agendamento (não salvar)",
+    "description": "Verifica que o usuário pode sair do formulário de novo agendamento sem salvar e retornar à lista.",
+    "category": "Agenda",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the username/email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Entrar\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Agenda\" item in the main navigation menu"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Novo Agendamento\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Novo Agendamento\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Cancelar\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/agenda\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Novo Agendamento\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Validar erro ao tentar salvar agendamento com campos obrigatórios em branco",
+    "description": "Verifica que o sistema bloqueia o salvamento e exibe validação ao deixar campos obrigatórios vazios.",
+    "category": "Agenda",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the username/email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Entrar\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Agenda\" item in the main navigation menu"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Novo Agendamento\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Salvar\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Obrigatório\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Solicitante\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "Filtrar lista por status Pendente",
+    "description": "Verifica que o usuário consegue filtrar a lista de agendamentos pelo status Pendente.",
+    "category": "Agenda",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the username/email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Entrar\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Agenda\" item in the main navigation menu"
+      },
+      {
+        "type": "action",
+        "description": "Select \"Pendente\" from the \"Status\" dropdown"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Pendente\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Lista de agendamentos\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "View Configurations page sections (system parameters and user management)",
+    "description": "Verifies that an authenticated user can open /configuracoes and see the main sections for system parameters and user management.",
+    "category": "Configurations",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Entrar\" (Login/Sign in) button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/\""
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Configurações\" menu item"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/configuracoes\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Parâmetros\" or \"Configurações\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC021",
+    "title": "Update a global parameter and save successfully",
+    "description": "Verifies that a global/system parameter can be changed and saved with a visible success confirmation.",
+    "category": "Configurations",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Entrar\" (Login/Sign in) button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/\""
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Configurações\" menu item"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/configuracoes\""
+      },
+      {
+        "type": "action",
+        "description": "Fill \"Teste\" into a visible global parameter input field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Salvar\" (Save) button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"salvo\" or \"sucesso\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC022",
+    "title": "Attempt to save configurations with a required parameter empty",
+    "description": "Verifies that saving is blocked and a validation message appears when a required configuration field is empty.",
+    "category": "Configurations",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Entrar\" (Login/Sign in) button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Configurações\" menu item"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/configuracoes\""
+      },
+      {
+        "type": "action",
+        "description": "Click into a visible required global parameter field"
+      },
+      {
+        "type": "action",
+        "description": "Press \"Backspace\""
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Salvar\" (Save) button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"obrigatório\" or \"preencha\" or \"inválido\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC023",
+    "title": "Non-admin user is blocked from user management section",
+    "description": "Verifies that a non-admin user cannot access the user management section and sees an insufficient permissions message.",
+    "category": "Configurations",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"usuario.naoadmin@example.com\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"senha-incorreta-ou-placeholder\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Entrar\" (Login/Sign in) button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Configurações\" menu item"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/configuracoes\""
+      },
+      {
+        "type": "action",
+        "description": "Scroll to the \"Usuários\" (User management) section"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"sem permissão\" or \"acesso negado\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC024",
+    "title": "Admin creates a new user and sees it listed",
+    "description": "Verifies that an admin can create a user from Configurations and the new user appears in the user management table.",
+    "category": "Configurations",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Entrar\" (Login/Sign in) button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Configurações\" menu item"
+      },
+      {
+        "type": "action",
+        "description": "Scroll to the \"Usuários\" (User management) section"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Novo usuário\" (New user) button"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Teste Usuário\" into the Name field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"teste.usuario+e2e@example.com\" into the Email field"
+      },
+      {
+        "type": "action",
+        "description": "Select \"Administrador\" (Admin) from the Role/Perfil dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Salvar\" (Save) button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"teste.usuario+e2e@example.com\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC025",
+    "title": "Admin edits an existing user and sees updated value in the list",
+    "description": "Verifies that an admin can edit a user and the updated information appears in the user management table.",
+    "category": "Configurations",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Entrar\" (Login/Sign in) button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Configurações\" menu item"
+      },
+      {
+        "type": "action",
+        "description": "Scroll to the \"Usuários\" (User management) section"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Editar\" (Edit) action for a visible user in the table"
+      },
+      {
+        "type": "action",
+        "description": "Type \" - Editado\" into the Name field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Salvar\" (Save) button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Editado\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC026",
+    "title": "Creating a user fails with invalid email format",
+    "description": "Verifies that user creation shows a validation error when the email format is invalid.",
+    "category": "Configurations",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Entrar\" (Login/Sign in) button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Configurações\" menu item"
+      },
+      {
+        "type": "action",
+        "description": "Scroll to the \"Usuários\" (User management) section"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Novo usuário\" (New user) button"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Usuario Email Invalido\" into the Name field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"email-invalido\" into the Email field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Salvar\" (Save) button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"email inválido\" or \"formato\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC027",
+    "title": "Cancel out of user create/edit does not apply changes",
+    "description": "Verifies that canceling a user create/edit operation closes the form and does not show a success confirmation.",
+    "category": "Configurations",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Entrar\" (Login/Sign in) button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Configurações\" menu item"
+      },
+      {
+        "type": "action",
+        "description": "Scroll to the \"Usuários\" (User management) section"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Novo usuário\" (New user) button"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Usuario Cancelado\" into the Name field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Cancelar\" (Cancel) button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Novo usuário\" (New user) button is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"sucesso\" is not visible"
+      }
+    ]
+  },
+  {
+    "id": "TC028",
+    "title": "View populated profile information on /perfil",
+    "description": "Verifies that the profile page loads and shows the current user profile information already filled in.",
+    "category": "Profile Management",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Entrar\" (Login) button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/\""
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Perfil\" in the main navigation/menu"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/perfil\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Nome\" field is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC029",
+    "title": "Update profile name and save successfully",
+    "description": "Verifies a user can update the name field and sees a success confirmation.",
+    "category": "Profile Management",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Entrar\" (Login) button"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Perfil\" in the main navigation/menu"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Teste Nome Atualizado\" into the \"Nome\" field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Salvar\" (Save) button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Salvo\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC030",
+    "title": "Update profile phone and save successfully",
+    "description": "Verifies a user can update the phone field and sees a success confirmation.",
+    "category": "Profile Management",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Entrar\" (Login) button"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Perfil\" in the main navigation/menu"
+      },
+      {
+        "type": "action",
+        "description": "Type \"11999998888\" into the \"Telefone\" (Phone) field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Salvar\" (Save) button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Salvo\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC031",
+    "title": "Update profile email and save successfully",
+    "description": "Verifies a user can update the email field and sees a success confirmation.",
+    "category": "Profile Management",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Entrar\" (Login) button"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Perfil\" in the main navigation/menu"
+      },
+      {
+        "type": "action",
+        "description": "Type \"teste+perfil@exemplo.com\" into the \"Email\" field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Salvar\" (Save) button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Salvo\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC032",
+    "title": "Change password with correct current password",
+    "description": "Verifies a user can change their password by providing the correct current password and sees a confirmation.",
+    "category": "Profile Management",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Entrar\" (Login) button"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Perfil\" in the main navigation/menu"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Alterar Senha\" (Change Password)"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the \"Senha atual\" (Current password) field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"NovaSenha123!\" into the \"Nova senha\" (New password) field"
+      }
+    ]
+  },
+  {
+    "id": "TC033",
+    "title": "Save password change and see success confirmation",
+    "description": "Verifies that saving the password change after filling fields shows a success message.",
+    "category": "Profile Management",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Entrar\" (Login) button"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Perfil\" in the main navigation/menu"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Alterar Senha\" (Change Password)"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the \"Senha atual\" (Current password) field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"NovaSenha123!\" into the \"Nova senha\" (New password) field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Salvar\" (Save) button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Senha\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC034",
+    "title": "Attempt to change password with incorrect current password shows error",
+    "description": "Verifies an error is shown when the current password is incorrect during password change.",
+    "category": "Profile Management",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Entrar\" (Login) button"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Perfil\" in the main navigation/menu"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Alterar Senha\" (Change Password)"
+      },
+      {
+        "type": "action",
+        "description": "Type \"SenhaErrada123\" into the \"Senha atual\" (Current password) field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"NovaSenha123!\" into the \"Nova senha\" (New password) field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Salvar\" (Save) button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"senha atual\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC035",
+    "title": "Password change form validation: attempt to save with empty new password",
+    "description": "Verifies the UI prevents saving when the new password field is empty and shows a visible validation message.",
+    "category": "Profile Management",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email/username field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Entrar\" (Login) button"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Perfil\" in the main navigation/menu"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Alterar Senha\" (Change Password)"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the \"Senha atual\" (Current password) field"
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Salvar\" (Save) button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Nova senha\" is visible"
+      }
+    ]
+  }
+]
