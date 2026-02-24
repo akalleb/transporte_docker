@@ -27,6 +27,11 @@ export default defineNuxtConfig({
       login: '/login',
       callback: '/confirm',
       exclude: ['/login', '/confirm', '/esqueci-senha', '/redefinir-senha'],
+    },
+    cookieOptions: {
+      secure: false, // Necessário para funcionar em HTTP (IP do VPS)
+      maxAge: 60 * 60 * 24 * 7, // 7 dias
+      sameSite: 'lax',
     }
   },
   runtimeConfig: {

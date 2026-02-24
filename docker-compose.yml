@@ -8,6 +8,11 @@ services:
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_KEY: ${SUPABASE_KEY}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      
+      # Overrides específicos do Nuxt para garantir que o Client-side pegue os valores corretos
+      NUXT_PUBLIC_SUPABASE_URL: ${SUPABASE_URL}
+      NUXT_PUBLIC_SUPABASE_KEY: ${SUPABASE_KEY}
+      
       # Força o Nuxt a rodar na porta 3000 internamente, ignorando a porta do VPS
       NITRO_PORT: 3000
       PORT: 3000
