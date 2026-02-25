@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onUpdated, nextTick, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue'
-import { SendIcon, SmileIcon, MoreVerticalIcon, CheckCheckIcon, Trash2Icon, EraserIcon, XIcon, ClockIcon, AlertCircleIcon } from 'lucide-vue-next'
+import { SendIcon, SmileIcon, MoreVerticalIcon, CheckCheckIcon, Trash2Icon, EraserIcon, XIcon, ClockIcon, AlertCircleIcon, FileTextIcon } from 'lucide-vue-next'
 import type { Conversation, Message } from '~/types/chat'
 // import EmojiPicker from 'vue3-emoji-picker'
 import 'vue3-emoji-picker/css'
@@ -167,10 +167,14 @@ const getAvatarUrl = (name: string) => {
             :class="msg.sender === 'agent' ? 'bg-primary rounded-tr-none' : 'bg-white dark:bg-slate-800 rounded-tl-none'"
           >
             <ImageMessage 
-                v-if="msg.type === 'image'" 
-                :src="msg.content" 
-                class="rounded-lg"
+                v-if="msg.type === 'image' || (msg.media_url && !msg.media_url.endsWith('.pdf'))" 
+                :src="msg.media_url || msg.content" 
+                class="rounded-lg max-w-[250px]"
             />
+            <div v-else-if="msg.type === 'document' || (msg.media_url && msg.media_url.endsWith('.pdf'))" class="p-2 flex items-center gap-2">
+                <FileTextIcon class="w-8 h-8 text-slate-500" />
+                <a :href="msg.media_url || msg.content" target="_blank" class="text-sm underline text-blue-600 dark:text-blue-400">Ver Documento</a>
+            </div>
             <p 
               v-else
               class="text-sm px-3 py-2"

@@ -29,6 +29,20 @@ serve(async (req) => {
 
     console.log(`Recebendo mensagem de ${pushName || 'Desconhecido'} (${phone}): ${text}`)
 
+    // 0. Obter organization_id padrão (assumindo single-tenant ou primeira org)
+    // Isso garante que os registros sejam visíveis pelo frontend (RLS)
+    const { data: orgData } = await supabaseClient
+      .from('organizations')
+      .select('id')
+      .limit(1)
+      .single()
+    
+    const organizationId = orgData?.id
+
+    if (!organizationId) {
+        console.warn('ATENÇÃO: Nenhuma organização encontrada. Registros podem ficar órfãos.')
+    }
+
     // 1. Tentar encontrar conversa existente pelo JID (prioridade máxima para LIDs)
     let conversation = null
     
@@ -62,6 +76,7 @@ serve(async (req) => {
       const { data: newConv, error: createError } = await supabaseClient
         .from('conversations')
         .insert({
+          organization_id: organizationId,
           contact_phone: phone,
           contact_name: pushName || phone, // Usa pushName se disponível
           contact_jid: contact_jid, // Salva o JID original (importante para LIDs)
@@ -107,6 +122,7 @@ serve(async (req) => {
     const { error: msgError } = await supabaseClient
       .from('messages')
       .insert({
+        organization_id: organizationId,
         conversation_id: conversationId,
         sender: sender || 'contact', // 'contact' se vier do webhook, 'agent' se vier do app (mas app usa client direto geralmente)
         content: text,

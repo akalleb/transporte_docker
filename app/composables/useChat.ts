@@ -31,79 +31,64 @@ export const useChat = () => {
         // Conectar ao servidor WhatsApp (Porta 3001)
         const runtimeConfig = useRuntimeConfig()
         const socketUrl = runtimeConfig.public.whatsappApiUrl || 'http://localhost:3001'
-        socket.value = io(socketUrl, {
-          transports: ['websocket'],
-          reconnection: true
-        })
-    
-        socket.value.on('connect', () => {
-          console.log('Socket.io conectado!')
-        })
-    
-        socket.value.on('new_message', (data: any) => {
-          console.log('Nova mensagem via Socket:', data)
-          // Se a mensagem for da conversa ativa, adiciona na lista
-          if (activeConversation.value) {
-            // Verifica se é desta conversa (pelo telefone)
-            const cleanContactPhone = activeConversation.value.contact_phone.replace(/[^0-9]/g, '')
-            const cleanMsgPhone = data.phone.replace(/[^0-9]/g, '')
-            
-            if (cleanContactPhone === cleanMsgPhone) {
-                const newMessage: Message = {
-                    id: 'socket_' + Date.now(), // ID temporário
-                    conversation_id: activeConversation.value.id,
-                    content: data.content,
-                    sender: data.sender || 'contact',
-                    type: data.type || 'text',
-                    created_at: data.timestamp || new Date().toISOString(),
-                    status: 'delivered'
-                }
-                
-                // Evitar duplicidade
-                const exists = messages.value.some(m => 
-                    (m.content === newMessage.content && Math.abs(new Date(m.created_at).getTime() - new Date(newMessage.created_at).getTime()) < 2000)
-                )
-    
-                if (!exists) {
-                    messages.value.push(newMessage)
-                }
-                
-                // Move conversa para o topo
-                updateConversationListOrder(activeConversation.value.id, data.content, data.timestamp)
-            } else {
-                 // Atualiza lista de conversas se for de outro contato
-                 const convIndex = conversations.value.findIndex(c => c.contact_phone.replace(/[^0-9]/g, '') === cleanMsgPhone)
-                 if (convIndex !== -1) {
-                     const conv = conversations.value[convIndex]
-                     conv.last_message = data.content
-                     conv.last_message_at = data.timestamp || new Date().toISOString()
-                     conversations.value.splice(convIndex, 1)
-                     conversations.value.unshift(conv)
-                 }
-            }
-          }
+        
+        console.log('[useChat] Conectando ao Socket.io em:', socketUrl)
+        
+        const socketInstance = io(socketUrl, {
+          transports: ['websocket', 'polling'], // Fallback para polling se websocket falhar
+          reconnection: true,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 1000
         })
         
-        socket.value.on('message_status', (data: any) => {
-            // Atualiza status da mensagem (envio, falha)
-            // data: { tempId, status, messageId, error }
-            const { tempId, status, messageId, error } = data
-            console.log('Atualização de status via Socket:', data)
-            
-            const msgIndex = messages.value.findIndex(m => m.id === tempId)
-            if (msgIndex !== -1) {
-                const msg = messages.value[msgIndex]
-                msg.status = status
-                if (messageId) msg.id = messageId // Atualiza ID temporário para permanente
-                if (error) console.error('Erro no envio da mensagem:', error)
-            }
+        socket.value = socketInstance
+    
+        socketInstance.on('connect', () => {
+          console.log('[useChat] Socket.io conectado com sucesso! ID:', socketInstance.id)
         })
-
-        socket.value.on('message_sent', (data: any) => {
-            console.log('Confirmação de envio via Socket (Legacy):', data)
+        
+        socketInstance.on('connect_error', (err: any) => {
+          console.error('[useChat] Erro de conexão Socket.io:', err.message)
         })
+    
+        socketInstance.on('new_message', (data: any) => {
+          console.log('[useChat] Nova mensagem recebida:', data)
+          
+          // Se tiver activeConversation, verifica se é pra ela
+          if (activeConversation.value) {
+              const currentPhone = activeConversation.value.contact_phone.replace(/[^0-9]/g, '')
+              const incomingPhone = (data.phone || '').replace(/[^0-9]/g, '')
+              
+              if (currentPhone && incomingPhone && currentPhone === incomingPhone) {
+                  const newMessage: Message = {
+                      id: data.id || 'socket_' + Date.now(),
+                      conversation_id: activeConversation.value.id,
+                      content: data.content,
+                      sender: data.sender || 'contact', // 'contact' ou 'agent'
+                      type: data.type || 'text',
+                      created_at: data.timestamp || new Date().toISOString(),
+                      status: 'delivered',
+                      media_url: data.mediaUrl || null
+                  }
+                  
+                  // Evita duplicidade simples (pelo ID ou conteúdo recente)
+                  const exists = messages.value.some(m => m.id === newMessage.id)
+                  if (!exists) {
+                      messages.value.push(newMessage)
+                      // Scroll to bottom (idealmente via evento ou ref no componente)
+                  }
+              }
+          }
+          
+          // Atualiza a lista de conversas (move pro topo ou atualiza preview)
+          // Se não estiver na lista, recarrega tudo (simples)
+          // Se estiver, move
+          // TODO: Melhorar performance aqui
+          loadConversations() 
+        })
+        
     } catch (e) {
-        console.error('Erro ao carregar socket.io-client:', e)
+        console.error('[useChat] Falha crítica ao inicializar socket:', e)
     }
   }
 
@@ -164,72 +149,78 @@ export const useChat = () => {
   async function sendMessage(text: string, type: 'text' | 'image' | 'file' = 'text') {
     if (!activeConversation.value) return
 
-    // 1. Tentar enviar via Socket.io (Mais rápido que API e Supabase)
-    if (socket.value && socket.value.connected) {
-        socket.value.emit('send_message', {
-            phone: activeConversation.value.contact_phone,
-            conversation_id: activeConversation.value.id, // Adicionado para backend buscar JID correto
-            message: text
-        })
-        // Feedback visual imediato
-        messages.value.push({
-            id: 'temp_' + Date.now(),
-            conversation_id: activeConversation.value.id,
-            sender: 'agent',
-            content: text,
-            type: type,
-            created_at: new Date().toISOString(),
-            status: 'sent' // Será atualizado pelo listener do Supabase depois
-        } as Message)
-        
-        // Não precisamos fazer fetch ou insert aqui se o socket funcionar, 
-        // MAS precisamos garantir persistência.
-        // O servidor WhatsApp deveria salvar no banco ao receber via Socket?
-        // Atualmente o server.js APENAS envia para o WhatsApp Web.
-        // Então PRECISAMOS salvar no banco aqui também para garantir histórico.
-    }
-
-    // 2. Inserir no Supabase (com status 'delivered' se já foi enviado, ou 'sent' para a fila pegar)
-    let status = 'sent'
-    if (socket.value && socket.value.connected) status = 'delivered'
-
-    const { data, error } = await supabase
-      .from('messages')
-      .insert({
+    // 1. Atualização Otimista da UI
+    const tempId = 'temp_' + Date.now()
+    const optimisticMessage: Message = {
+        id: tempId,
         conversation_id: activeConversation.value.id,
         sender: 'agent',
         content: text,
         type: type,
-        status: status
-      })
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Erro ao salvar mensagem:', error)
-      return
+        created_at: new Date().toISOString(),
+        status: 'sending'
     }
+    messages.value.push(optimisticMessage)
 
-    // Atualização Otimista da UI
-    // Se enviamos via socket, já adicionamos um temp. Se o ID for diferente, poderíamos ter duplicidade.
-    // Mas o temp ID não vem do banco.
-    // Vamos apenas adicionar se não existir.
-    if (data) {
-        const exists = messages.value.find(m => m.id === data.id)
-        if (!exists) {
-            // Se tiver mensagem temporária recente (enviada via socket), substituir ou remover
-            // Simplificação: apenas adicionar. O socket push usa 'temp_' id.
-            // O ideal seria substituir o temp pelo real.
-            
-            // Remove temp messages older than 5 seconds? No.
-            // Replace logic:
-            const tempIndex = messages.value.findIndex(m => m.id.startsWith('temp_') && m.content === text)
-            if (tempIndex !== -1) {
-                messages.value[tempIndex] = data as any
-            } else {
-                messages.value.push(data as any)
-            }
+    try {
+        // 2. Tentar enviar via API Direta (mais confiável que Socket para envio)
+        const runtimeConfig = useRuntimeConfig()
+        const apiUrl = runtimeConfig.public.whatsappApiUrl || 'http://localhost:3001'
+        
+        // Primeiro salvamos no banco com status 'sent' (para garantir persistência)
+        const { data: savedMsg, error: saveError } = await supabase
+          .from('messages')
+          .insert({
+            conversation_id: activeConversation.value.id,
+            sender: 'agent',
+            content: text,
+            type: type,
+            status: 'sent'
+          })
+          .select()
+          .single()
+
+        if (saveError || !savedMsg) {
+            console.error('Erro ao salvar mensagem no banco:', saveError)
+            // Atualizar otimista para erro
+            const msgIndex = messages.value.findIndex(m => m.id === tempId)
+            if (msgIndex !== -1) messages.value[msgIndex].status = 'failed'
+            return
         }
+
+        // Substituir ID temporário pelo real
+        const msgIndex = messages.value.findIndex(m => m.id === tempId)
+        if (msgIndex !== -1) {
+            messages.value[msgIndex] = savedMsg as any
+            messages.value[msgIndex].status = 'sending' // Mantém sending enquanto chama API
+        }
+
+        // 3. Chamar API de envio
+        const response = await fetch(`${apiUrl}/send-message`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                phone: activeConversation.value.contact_phone,
+                message: text
+            })
+        })
+
+        if (response.ok) {
+            // Sucesso! Atualizar status no banco e localmente
+            await supabase.from('messages').update({ status: 'delivered' }).eq('id', savedMsg.id)
+            
+            const finalIndex = messages.value.findIndex(m => m.id === savedMsg.id)
+            if (finalIndex !== -1) messages.value[finalIndex].status = 'delivered'
+        } else {
+            console.error('Erro na API de envio:', response.statusText)
+            // Deixar como 'sent' para que o Polling do servidor tente enviar depois
+            // O Listener do servidor também deve pegar se estiver ativo
+        }
+
+    } catch (e) {
+        console.error('Exceção ao enviar mensagem:', e)
+        const msgIndex = messages.value.findIndex(m => m.id === tempId)
+        if (msgIndex !== -1) messages.value[msgIndex].status = 'failed'
     }
   }
 

@@ -524,22 +524,39 @@ async function sendMessage(phone, text, sock, conversationId = null) {
       
       // Se não tiver ID da conversa, tenta buscar
       let convId = conversationId
+      let orgId = null
+
       if (!convId) {
           // Tenta buscar pelo telefone limpo
           const { data } = await supabase
             .from('conversations')
-            .select('id')
+            .select('id, organization_id')
             .or(`contact_phone.eq.${phoneCleaned},contact_phone.eq.+${phoneCleaned}`)
             .single()
             
-          if (data) convId = data.id
+          if (data) {
+              convId = data.id
+              orgId = data.organization_id
+          }
+      } else {
+          // Se já temos o ID, precisamos buscar o orgId
+          const { data } = await supabase
+            .from('conversations')
+            .select('organization_id')
+            .eq('id', convId)
+            .single()
+            
+          if (data) {
+              orgId = data.organization_id
+          }
       }
 
-      if (convId) {
+      if (convId && orgId) {
           // Registrar mensagem enviada pelo bot no histórico
           const { data: savedMsg, error } = await supabase
             .from('messages')
             .insert({
+                organization_id: orgId,
                 conversation_id: convId,
                 sender: 'agent', // Usando 'agent' conforme constraint
                 content: text,

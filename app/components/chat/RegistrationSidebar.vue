@@ -143,6 +143,23 @@ const subscribeToRegistrationUpdates = () => {
     .subscribe()
 }
 
+const toggleBotStatus = async () => {
+  if (!props.activeConversation) return
+
+  const newStatus = !isBotActive.value
+  isBotActive.value = newStatus // Otimista
+
+  const { error } = await supabase
+    .from('conversations')
+    .update({ is_bot_active: newStatus })
+    .eq('id', props.activeConversation.id)
+
+  if (error) {
+    console.error('Erro ao atualizar status do bot:', error)
+    isBotActive.value = !newStatus // Reverte
+  }
+}
+
 const initializeForm = async () => {
   if (!props.activeConversation) return
 
@@ -410,7 +427,7 @@ const handleFileUpload = async (event: any) => {
         </div>
         
         <button 
-          @click="toggleBot"
+          @click="toggleBotStatus"
           class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           :class="isBotActive ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-700'"
           title="Ativar/Desativar Robô"

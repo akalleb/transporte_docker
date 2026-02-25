@@ -247,6 +247,38 @@ const fetchUsers = async () => {
   loading.value = false
 }
 
+const ragMarkdown = ref('')
+const ragCategory = ref('geral')
+const isSavingRag = ref(false)
+
+const saveRagContent = async () => {
+  if (!ragMarkdown.value) {
+    showError('Erro', 'Conteúdo Markdown é obrigatório')
+    return
+  }
+
+  isSavingRag.value = true
+  try {
+    const { data, error } = await useFetch('/api/admin/rag-import', {
+      method: 'POST',
+      body: {
+        markdown: ragMarkdown.value,
+        category: ragCategory.value
+      }
+    })
+
+    if (error.value) throw error.value
+
+    showSuccess('Sucesso', 'Base de conhecimento atualizada com sucesso!')
+    ragMarkdown.value = '' // Limpar após sucesso
+  } catch (err: any) {
+    console.error('Erro ao salvar RAG:', err)
+    showError('Erro', err.message || 'Falha ao processar conteúdo')
+  } finally {
+    isSavingRag.value = false
+  }
+}
+
 const fetchBoardingLocations = async () => {
   const { data, error } = await supabase
     .from('boarding_locations')
@@ -330,24 +362,6 @@ const deleteBoardingLocation = (id: string) => {
   )
 }
 
-const checkStatus = async () => {
-  try {
-    const res = await fetch(`${WHATSAPP_API}/status`)
-    const data = await res.json()
-    connectionStatus.value = data.status
-    isConnected.value = data.status === 'connected'
-    errorMsg.value = ''
-    
-    if (!isConnected.value) {
-        fetchQrCode()
-    }
-  } catch (err) {
-    console.error('Erro ao conectar com servidor WhatsApp:', err)
-    connectionStatus.value = 'error'
-    errorMsg.value = 'Servidor WhatsApp indisponível'
-  }
-}
-
 const fetchQrCode = async () => {
   try {
     const res = await fetch(`${WHATSAPP_API}/qr`)
@@ -396,11 +410,47 @@ const settings = ref({
 const loadingSettings = ref(false)
 
 const fetchSettings = async () => {
+  loadingSettings.value = true
   try {
     const data = await $fetch('/api/admin/settings')
-    if (data) settings.value = data
-  } catch (err) {
+    if (data) settings.value = { ...settings.value, ...data }
+  } catch (err: any) {
     console.error('Erro ao buscar configurações:', err)
+    // Tratamento silencioso para não quebrar a tela, mas logar o erro
+    if (err.statusCode === 500) {
+        showError('Aviso', 'Não foi possível carregar as configurações do sistema. Usando valores padrão.')
+    }
+  } finally {
+    loadingSettings.value = false
+  }
+}
+
+const checkStatus = async () => {
+  try {
+    // Timeout para não travar a UI se o servidor estiver fora
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 3000)
+    
+    const res = await fetch(`${WHATSAPP_API}/status`, { signal: controller.signal })
+    clearTimeout(timeoutId)
+    
+    if (res.ok) {
+        const data = await res.json()
+        connectionStatus.value = data.status
+        isConnected.value = data.status === 'connected'
+        errorMsg.value = ''
+        
+        if (!isConnected.value) {
+            fetchQrCode()
+        }
+    } else {
+        throw new Error('Status não ok')
+    }
+  } catch (err) {
+    // console.error('Erro ao conectar com servidor WhatsApp:', err) // Spam no console
+    connectionStatus.value = 'error'
+    isConnected.value = false
+    errorMsg.value = 'Servidor WhatsApp indisponível'
   }
 }
 
@@ -514,6 +564,53 @@ onUnmounted(() => {
               </div>
             </div>
           </BaseModal>
+
+          <!-- Seção de Base de Conhecimento (RAG) -->
+          <div class="space-y-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <DatabaseIcon class="w-5 h-5 text-primary" />
+              Base de Conhecimento (IA)
+            </h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+              Adicione informações em Markdown para treinar o assistente virtual. Use títulos (##) para separar tópicos.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div class="md:col-span-3 space-y-4">
+                <div class="space-y-2">
+                   <label class="text-sm font-bold uppercase text-slate-400">Conteúdo (Markdown)</label>
+                   <textarea 
+                     v-model="ragMarkdown"
+                     rows="10"
+                     class="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 py-4 px-4 text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm transition-colors outline-none resize-y font-mono"
+                     placeholder="## Título do Tópico&#10;Conteúdo explicativo aqui..."
+                   ></textarea>
+                </div>
+              </div>
+              
+              <div class="space-y-4">
+                <div class="space-y-2">
+                   <label class="text-sm font-bold uppercase text-slate-400">Categoria</label>
+                   <div class="relative">
+                     <select v-model="ragCategory" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 py-4 px-4 text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm transition-colors outline-none appearance-none cursor-pointer">
+                        <option value="geral">Geral</option>
+                        <option value="politicas">Políticas</option>
+                        <option value="servicos">Serviços</option>
+                        <option value="faq">FAQ</option>
+                        <option value="vacinas">Vacinação</option>
+                        <option value="campanhas">Campanhas</option>
+                     </select>
+                     <ChevronDownIcon class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                   </div>
+                </div>
+                
+                <BaseButton @click="saveRagContent" :disabled="isSavingRag" class="w-full justify-center">
+                  <span v-if="isSavingRag">Processando...</span>
+                  <span v-else class="flex items-center gap-2"><SaveIcon class="w-5 h-5" /> Salvar na Base</span>
+                </BaseButton>
+              </div>
+            </div>
+          </div>
 
           <!-- Edit User Modal -->
           <BaseModal :show="isEditingUser" @close="isEditingUser = false" maxWidth="max-w-2xl">
