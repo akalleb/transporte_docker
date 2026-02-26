@@ -17,6 +17,7 @@ const {
   loadConversations,
   loadMessages,
   sendMessage,
+  retryMessage,
   subscribeToMessages,
   deleteConversation,
   clearConversation
@@ -88,6 +89,7 @@ const confirmDelete = async () => {
       @send-message="handleSendMessage"
       @delete-conversation="handleDeleteRequest"
       @clear-conversation="clearConversation"
+      @retry-message="retryMessage"
     />
 
     <!-- Formulário de Cadastro (Direita) -->

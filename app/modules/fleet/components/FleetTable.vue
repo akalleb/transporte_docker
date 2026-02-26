@@ -42,9 +42,9 @@ watch(localSearch, (val) => {
 </script>
 
 <template>
-  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full">
+  <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full transition-colors">
     <!-- Toolbar / Search -->
-    <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-50/50">
+    <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
       <div class="relative w-full sm:w-72">
         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <SearchIcon class="h-4 w-4 text-slate-400" />
@@ -53,12 +53,12 @@ watch(localSearch, (val) => {
           v-model="localSearch"
           type="text"
           placeholder="Buscar veículo, placa..."
-          class="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm transition-shadow"
+          class="block w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm transition-all"
         />
       </div>
       
       <div class="flex items-center gap-2 w-full sm:w-auto">
-        <button class="p-2 text-slate-500 hover:bg-white hover:text-slate-700 rounded-lg border border-transparent hover:border-slate-200 transition-all" title="Filtros">
+        <button class="p-2 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-white rounded-lg border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all" title="Filtros">
             <FilterIcon class="w-5 h-5" />
         </button>
         <BaseButton @click="$emit('create')" class="w-full sm:w-auto flex items-center justify-center gap-2">
@@ -73,7 +73,7 @@ watch(localSearch, (val) => {
       <!-- Loading State -->
       <div v-if="loading" class="p-6 space-y-4">
         <div v-for="i in 5" :key="i" class="flex gap-4 animate-pulse">
-           <div class="h-12 w-full bg-slate-100 rounded-lg"></div>
+           <div class="h-12 w-full bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
         </div>
       </div>
 
@@ -91,7 +91,7 @@ watch(localSearch, (val) => {
 
       <!-- Table -->
       <table v-else class="w-full text-left border-collapse">
-        <thead class="bg-slate-50 sticky top-0 z-10 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+        <thead class="bg-slate-50 dark:bg-slate-800/80 sticky top-0 z-10 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700 backdrop-blur-sm">
           <tr>
             <th class="px-6 py-3">Veículo</th>
             <th class="px-6 py-3">Placa</th>
@@ -100,7 +100,7 @@ watch(localSearch, (val) => {
             <th class="px-6 py-3 text-right">Ações</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100">
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
           <FleetRow 
             v-for="vehicle in vehicles" 
             :key="vehicle.id" 
@@ -114,24 +114,24 @@ watch(localSearch, (val) => {
     </div>
     
     <!-- Footer / Pagination -->
-    <div class="p-4 border-t border-slate-100 bg-slate-50 text-xs text-slate-500 flex justify-between items-center" v-if="pagination.total > 0">
+    <div class="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs text-slate-500 dark:text-slate-400 flex justify-between items-center" v-if="pagination.total > 0">
         <span>Mostrando {{ vehicles.length }} de {{ pagination.total }} resultados</span>
         <div class="flex gap-2">
             <button 
               @click="$emit('page-change', pagination.page - 1)" 
               :disabled="pagination.page <= 1"
-              class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              class="px-3 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 transition-colors text-slate-700 dark:text-slate-300"
             >
               <ChevronLeftIcon class="w-3 h-3" />
               Anterior
             </button>
-            <span class="px-3 py-1 bg-slate-100 rounded text-slate-700 font-medium">
+            <span class="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded text-slate-700 dark:text-slate-300 font-medium">
               {{ pagination.page }} de {{ pagination.totalPages }}
             </span>
             <button 
               @click="$emit('page-change', pagination.page + 1)" 
               :disabled="pagination.page >= pagination.totalPages"
-              class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              class="px-3 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 transition-colors text-slate-700 dark:text-slate-300"
             >
               Próxima
               <ChevronRightIcon class="w-3 h-3" />

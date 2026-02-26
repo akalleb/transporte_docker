@@ -8,7 +8,8 @@ const props = defineProps<{
 }>()
 
 const supabase = useSupabaseClient()
-const imageUrl = ref('')
+const thumbnailUrl = ref('')
+const fullSizeUrl = ref('')
 const isLoading = ref(true)
 const error = ref(false)
 
@@ -21,26 +22,34 @@ const loadImage = async () => {
   try {
     // Se já for uma URL completa (http/https), usa direto
     if (props.src.startsWith('http')) {
-      imageUrl.value = props.src
+      thumbnailUrl.value = props.src
+      fullSizeUrl.value = props.src
     } 
-    // Se for caminho relativo do bucket (ex: requisicoes/...)
-    else if (props.src.includes('requisicoes/')) {
-        const path = props.src.split('requisicoes/')[1]
-        const { data, error: signedError } = await supabase.storage
-            .from('requisicoes')
-            .createSignedUrl(path, 3600) // 1 hora de validade
-        
-        if (signedError) throw signedError
-        imageUrl.value = data.signedUrl
-    }
-    // Caso contrário (caminho relativo sem bucket explícito, assume requisicoes)
     else {
-        const { data, error: signedError } = await supabase.storage
+        let path = props.src
+        if (props.src.includes('requisicoes/')) {
+            path = props.src.split('requisicoes/')[1]
+        }
+
+        // Thumbnail (otimizado)
+        const { data: thumbData, error: thumbError } = await supabase.storage
             .from('requisicoes')
-            .createSignedUrl(props.src, 3600)
+            .createSignedUrl(path, 3600, {
+                transform: {
+                    width: 300,
+                    quality: 80
+                }
+            })
+            
+        // Tamanho original (ao clicar)
+        const { data: fullData, error: fullError } = await supabase.storage
+            .from('requisicoes')
+            .createSignedUrl(path, 3600)
         
-        if (signedError) throw signedError
-        imageUrl.value = data.signedUrl
+        if (thumbError || fullError) throw (thumbError || fullError)
+        
+        thumbnailUrl.value = thumbData?.signedUrl || ''
+        fullSizeUrl.value = fullData?.signedUrl || ''
     }
   } catch (e) {
     console.error('Erro ao carregar imagem:', e)
@@ -65,9 +74,9 @@ watch(() => props.src, loadImage)
         Erro ao carregar imagem
     </div>
 
-    <a v-else :href="imageUrl" target="_blank" class="block relative group cursor-pointer">
+    <a v-else :href="fullSizeUrl" target="_blank" class="block relative group cursor-pointer">
         <img 
-            :src="imageUrl" 
+            :src="thumbnailUrl" 
             :alt="alt || 'Imagem enviada'" 
             class="w-full h-auto object-cover rounded-lg shadow-sm hover:opacity-95 transition-opacity"
             loading="lazy"

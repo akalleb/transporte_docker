@@ -23,8 +23,11 @@ import {
 } from 'lucide-vue-next'
 import type { Database } from '~/types/database.types'
 
-// Tipos
-type Registration = Database['public']['Tables']['registrations']['Row']
+// Tipos (Estendendo para aceitar a nova relação de frota)
+type Registration = Database['public']['Tables']['registrations']['Row'] & {
+  vehicle_id?: string | null
+  driver_id?: string | null
+}
 
 // Supabase
 const supabase = useSupabaseClient<Database>()
@@ -56,7 +59,7 @@ const newRegistration = ref({
   boarding_point: '',
   needs_companion: false,
   companion_reason: '',
-  status: 'approved' // Admin criando já nasce aprovado
+  status: 'approved' as 'approved' | 'pending' | 'draft' | 'rejected'
 })
 
 const resetNewRegistration = () => {
@@ -309,12 +312,15 @@ const updateStatus = async (id: string, status: 'approved' | 'rejected') => {
     // Atualização otimista local
     const index = registrations.value.findIndex((r: Registration) => r.id === id)
   if (index !== -1) {
-    const oldStatus = registrations.value[index].status
-    registrations.value[index].status = status
-    
-    // Enviar mensagem apenas se o status mudou
-    if (oldStatus !== status) {
-      await sendStatusMessage(registrations.value[index], status)
+    const reg = registrations.value[index]
+    if (reg) {
+      const oldStatus = reg.status
+      reg.status = status
+      
+      // Enviar mensagem apenas se o status mudou
+      if (oldStatus !== status) {
+        await sendStatusMessage(reg, status)
+      }
     }
   }
   }
@@ -344,9 +350,9 @@ const confirmDeleteRegistration = async () => {
   try {
     // 1. Excluir imagem do storage se existir
     if (attachmentUrl) {
-      let path = attachmentUrl
+      let path: string | undefined = attachmentUrl
       // Tenta extrair o caminho relativo se for URL completa
-      if (attachmentUrl.includes('/requisicoes/')) {
+      if (attachmentUrl && attachmentUrl.includes('/requisicoes/')) {
         path = attachmentUrl.split('/requisicoes/')[1]
       }
       
@@ -519,9 +525,9 @@ const openDetails = async (reg: Registration) => {
       // Extrair o caminho do arquivo da URL pública
       // Exemplo: https://.../storage/v1/object/public/requisicoes/whatsapp/123.jpg
       // Caminho no bucket: whatsapp/123.jpg
-      let path = reg.attachment_url
+      let path: string | undefined = reg.attachment_url
       
-      if (reg.attachment_url.includes('/requisicoes/')) {
+      if (reg.attachment_url && reg.attachment_url.includes('/requisicoes/')) {
         path = reg.attachment_url.split('/requisicoes/')[1]
       }
 
@@ -565,8 +571,51 @@ watch(currentDate, () => {
   fetchRegistrations()
 })
 
+const vehicles = ref<any[]>([])
+const isAssigningVehicle = ref(false)
+
+const fetchVehicles = async () => {
+  const { data, error } = await supabase
+    .from('vehicles')
+    .select('*')
+    .eq('status', 'available')
+    
+  if (data) {
+    vehicles.value = data
+  }
+}
+
+const assignVehicle = async (vehicleId: string | null) => {
+    if (!selectedRegistration.value) return
+    isAssigningVehicle.value = true
+    try {
+        const { error } = await supabase
+            .from('registrations')
+            .update({ vehicle_id: vehicleId } as any)
+            .eq('id', selectedRegistration.value.id)
+        
+        if (error) throw error
+
+        // Sucesso local otimista
+        const index = registrations.value.findIndex((r: Registration) => r.id === selectedRegistration.value?.id)
+        if (index !== -1) {
+            const reg = registrations.value[index]
+            if (reg) reg.vehicle_id = vehicleId
+        }
+    } catch (err: any) {
+        console.error('Erro ao designar veiculo:', err)
+        errorMessage.value = 'A coluna vehicle_id ainda não existe no Banco! ' + err.message
+        showErrorModal.value = true
+        // Reverter local
+        selectedRegistration.value.vehicle_id = null
+    } finally {
+        isAssigningVehicle.value = false
+    }
+}
+
 onMounted(() => {
   fetchRegistrations()
+  fetchVehicles()
 })
 
 // Utilitários de UI
@@ -942,6 +991,32 @@ const stats = computed(() => {
               </a>
           </div>
 
+          <!-- Alocação de Veículo -->
+          <div v-if="selectedRegistration.status === 'approved'" class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
+             <h3 class="text-xs font-bold uppercase text-blue-600 dark:text-blue-400 tracking-wider mb-3 flex items-center gap-2">
+                <TruckIcon class="w-4 h-4" /> Alocação de Veículo e Motorista
+             </h3>
+             <div class="flex flex-col sm:flex-row gap-3 items-end">
+                <div class="flex-1 w-full relative">
+                   <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">Veículo Designado para a Viagem</label>
+                   <select 
+                      v-model="selectedRegistration.vehicle_id" 
+                      @change="assignVehicle(selectedRegistration.vehicle_id || null)"
+                      :disabled="isAssigningVehicle"
+                      class="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm text-slate-900 dark:text-slate-100 font-medium appearance-none"
+                   >
+                     <option :value="null">Nenhum veículo designado</option>
+                     <option v-for="v in vehicles" :key="v.id" :value="v.id">
+                        {{v.name || v.modelo || 'Veículo'}} - {{v.plate || v.placa || 'Sem placa'}} ({{ v.type || 'N/A' }})
+                     </option>
+                   </select>
+                </div>
+                <div v-if="isAssigningVehicle" class="pb-2">
+                   <ClockIcon class="w-5 h-5 text-blue-500 animate-spin" />
+                </div>
+             </div>
+          </div>
+          
           <!-- Metadados do Sistema -->
           <div class="border-t border-slate-100 dark:border-slate-800 pt-6 mt-2">
             <h3 class="text-xs font-bold uppercase text-slate-400 tracking-wider mb-4 flex items-center gap-2">

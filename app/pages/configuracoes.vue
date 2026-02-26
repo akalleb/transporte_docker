@@ -20,7 +20,14 @@ import {
   AlertTriangleIcon,
   SaveIcon,
   SettingsIcon,
-  XIcon
+  XIcon,
+  ActivityIcon,
+  BriefcaseIcon,
+  CpuIcon,
+  KeyIcon,
+  WrenchIcon,
+  LogOutIcon,
+  MenuIcon
 } from 'lucide-vue-next'
 import BaseModal from '~/components/ui/BaseModal.vue'
 import SuccessModal from '~/components/ui/SuccessModal.vue'
@@ -31,6 +38,11 @@ import BaseButton from '~/components/BaseButton.vue'
 definePageMeta({
   middleware: 'auth'
 })
+
+import type { Ref } from 'vue'
+
+const activeTab = ref('system' as string)
+const isMobileMenuOpen = ref(false)
 
 const supabase = useSupabaseClient()
 const users = ref<any[]>([])
@@ -48,7 +60,7 @@ const groupedLocations = computed(() => {
     if (!groups[loc.neighborhood]) {
       groups[loc.neighborhood] = []
     }
-    groups[loc.neighborhood].push(loc)
+    groups[loc.neighborhood]?.push(loc)
   })
   return groups
 })
@@ -484,186 +496,293 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="space-y-8 p-4 lg:p-8 max-w-7xl mx-auto">
-    <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
-      <div>
-        <h1 class="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">Configurações</h1>
-        <p class="text-slate-500 dark:text-slate-400 mt-2 font-light">Gerencie usuários, integrações e preferências da plataforma.</p>
+  <div class="h-full flex flex-col bg-slate-50 dark:bg-slate-900 min-h-screen">
+    <!-- Novo Header Horizontal  -->
+    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
+      <div class="flex items-center gap-4">
+        <!-- Menu Mobile Toggle -->
+        <button 
+          @click="isMobileMenuOpen = !isMobileMenuOpen" 
+          class="lg:hidden p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+        >
+          <MenuIcon class="w-6 h-6" />
+        </button>
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white leading-tight">Painel de Configurações</h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Gestão global do projeto Transporte 2.0</p>
+        </div>
       </div>
-      <div class="flex items-center gap-2 text-sm text-primary font-medium bg-primary/10 px-4 py-2 rounded-lg">
+      <div class="hidden sm:flex items-center gap-2 text-xs text-primary font-bold bg-primary/10 px-3 py-1.5 rounded-full uppercase tracking-wider border border-primary/20">
         <span class="size-2 rounded-full bg-primary animate-pulse"></span>
         Sistema Online
       </div>
     </header>
 
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
-      <!-- User Management Section -->
-      <section class="xl:col-span-2 flex flex-col gap-6">
-        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-          <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-              <UsersIcon class="text-primary w-6 h-6" />
-              <h2 class="font-bold uppercase tracking-wider text-xs text-slate-400">Gerenciamento de Usuários</h2>
-            </div>
-            <button 
-              @click="isAddingUser = !isAddingUser"
-              class="bg-primary hover:bg-primary/90 text-white font-bold py-2 px-6 rounded-lg transition-all flex items-center gap-2 shadow-lg shadow-primary/20"
-            >
-              <PlusIcon class="w-5 h-5" />
-              {{ isAddingUser ? 'Cancelar' : 'Adicionar Novo Usuário' }}
-            </button>
-          </div>
+    <div class="flex flex-1 overflow-hidden relative">
+      <!-- Sidebar / Menu Navegação Lateral -->
+      <aside 
+        class="w-64 bg-slate-50 dark:bg-slate-900/50 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 lg:block flex flex-col absolute lg:relative z-20 h-full transform transition-transform duration-300 overflow-y-auto"
+        :class="isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+      >
+        <div class="p-6 space-y-8 pb-32">
           
-          <!-- Add User Modal -->
-          <BaseModal :show="isAddingUser" @close="isAddingUser = false" maxWidth="max-w-2xl">
-            <div class="space-y-6">
-              <div class="flex items-center justify-between">
-                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Adicionar Novo Usuário</h2>
-                <button @click="isAddingUser = false" class="text-slate-400 hover:text-slate-600 transition-colors">
-                  <XIcon class="w-6 h-6" />
-                </button>
-              </div>
-              
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div class="space-y-2">
-                   <label class="text-sm font-bold uppercase text-slate-400">Nome</label>
-                   <BaseInput v-model="newUser.name" placeholder="Nome completo" />
-                 </div>
-                 <div class="space-y-2">
-                   <label class="text-sm font-bold uppercase text-slate-400">Email</label>
-                   <BaseInput v-model="newUser.email" placeholder="email@exemplo.com" type="email" />
-                 </div>
-                 <div class="space-y-2">
-                   <label class="text-sm font-bold uppercase text-slate-400">Telefone</label>
-                   <BaseInput v-model="newUser.phone" placeholder="(00) 00000-0000" type="tel" />
-                 </div>
-                 <div class="space-y-2">
-                   <label class="text-sm font-bold uppercase text-slate-400">Senha</label>
-                   <BaseInput v-model="newUser.password" placeholder="Senha segura" type="password" />
-                 </div>
-                 <div class="space-y-2 md:col-span-2">
-                   <label class="text-sm font-bold uppercase text-slate-400">Cargo</label>
-                   <div class="relative">
-                     <select v-model="newUser.role" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 py-4 px-4 text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm transition-colors outline-none appearance-none cursor-pointer">
-                        <option value="user">Usuário (Agente)</option>
-                        <option value="admin">Administrador</option>
-                     </select>
-                     <ChevronDownIcon class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-                   </div>
-                 </div>
-              </div>
-
-              <div class="flex gap-4 pt-4">
-                <BaseButton @click="isAddingUser = false" class="bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-none dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
-                  Cancelar
-                </BaseButton>
-                <BaseButton @click="createUser" :disabled="loading">
-                  <span v-if="loading">Criando...</span>
-                  <span v-else class="flex items-center gap-2"><PlusIcon class="w-5 h-5" /> Criar Usuário</span>
-                </BaseButton>
-              </div>
+          <!-- Grupo: Geral -->
+          <div>
+            <h3 class="px-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Engrenagem</h3>
+            <div class="space-y-1">
+              <button 
+                @click="activeTab = 'system'; isMobileMenuOpen = false"
+                class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+                :class="activeTab === 'system' ? 'bg-primary/10 text-primary dark:text-primary-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800'"
+              >
+                <ActivityIcon class="w-4 h-4" /> Geral
+              </button>
             </div>
-          </BaseModal>
+          </div>
 
-          <!-- Seção de Base de Conhecimento (RAG) -->
-          <div class="space-y-6 pt-6 border-t border-slate-200 dark:border-slate-800">
-            <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <DatabaseIcon class="w-5 h-5 text-primary" />
-              Base de Conhecimento (IA)
-            </h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400">
-              Adicione informações em Markdown para treinar o assistente virtual. Use títulos (##) para separar tópicos.
-            </p>
+          <!-- Grupo: Pessoas -->
+          <div>
+            <h3 class="px-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Equipe e Acessos</h3>
+            <div class="space-y-1">
+              <button 
+                @click="activeTab = 'users'; isMobileMenuOpen = false"
+                class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+                :class="activeTab === 'users' ? 'bg-primary/10 text-primary dark:text-primary-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800'"
+              >
+                <UsersIcon class="w-4 h-4" /> Gestão de Usuários
+              </button>
+              <button 
+                @click="activeTab = 'roles'; isMobileMenuOpen = false"
+                class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+                :class="activeTab === 'roles' ? 'bg-primary/10 text-primary dark:text-primary-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800'"
+              >
+                <ShieldCheckIcon class="w-4 h-4" /> Perfis Mestre
+              </button>
+            </div>
+          </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div class="md:col-span-3 space-y-4">
-                <div class="space-y-2">
-                   <label class="text-sm font-bold uppercase text-slate-400">Conteúdo (Markdown)</label>
-                   <textarea 
-                     v-model="ragMarkdown"
-                     rows="10"
-                     class="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 py-4 px-4 text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm transition-colors outline-none resize-y font-mono"
-                     placeholder="## Título do Tópico&#10;Conteúdo explicativo aqui..."
-                   ></textarea>
-                </div>
+          <!-- Grupo: IA -->
+          <div>
+            <h3 class="px-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Atendimento IA</h3>
+            <div class="space-y-1">
+              <button 
+                @click="activeTab = 'bot_config'; isMobileMenuOpen = false"
+                class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+                :class="activeTab === 'bot_config' ? 'bg-primary/10 text-primary dark:text-primary-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800'"
+              >
+                <MessageCircleIcon class="w-4 h-4" /> Conexão WhatsApp
+              </button>
+              <button 
+                @click="activeTab = 'rag_base'; isMobileMenuOpen = false"
+                class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+                :class="activeTab === 'rag_base' ? 'bg-primary/10 text-primary dark:text-primary-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800'"
+              >
+                <DatabaseIcon class="w-4 h-4" /> Base de Conhecimento
+              </button>
+              <button 
+                @click="activeTab = 'ai_behaviors'; isMobileMenuOpen = false"
+                class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+                :class="activeTab === 'ai_behaviors' ? 'bg-primary/10 text-primary dark:text-primary-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800'"
+              >
+                <CpuIcon class="w-4 h-4" /> Gatilhos e Comportamento
+              </button>
+            </div>
+          </div>
+
+          <!-- Grupo: Operação -->
+          <div>
+            <h3 class="px-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Logística e Frota</h3>
+            <div class="space-y-1">
+              <button 
+                @click="activeTab = 'boarding'; isMobileMenuOpen = false"
+                class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+                :class="activeTab === 'boarding' ? 'bg-primary/10 text-primary dark:text-primary-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800'"
+              >
+                <MapPinIcon class="w-4 h-4" /> Locais de Embarque
+              </button>
+              <button 
+                @click="activeTab = 'procedures'; isMobileMenuOpen = false"
+                class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+                :class="activeTab === 'procedures' ? 'bg-primary/10 text-primary dark:text-primary-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800'"
+              >
+                <BriefcaseIcon class="w-4 h-4" /> Tipos de Consulta/Exame
+              </button>
+            </div>
+          </div>
+
+          <!-- Grupo: Segurança -->
+          <div>
+            <h3 class="px-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Desenvolvedor</h3>
+            <div class="space-y-1">
+              <button 
+                @click="activeTab = 'auth_security'; isMobileMenuOpen = false"
+                class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+                :class="activeTab === 'auth_security' ? 'bg-primary/10 text-primary dark:text-primary-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800'"
+              >
+                <KeyIcon class="w-4 h-4" /> Autenticação Genérica
+              </button>
+              <button 
+                @click="activeTab = 'logs'; isMobileMenuOpen = false"
+                class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+                :class="activeTab === 'logs' ? 'bg-primary/10 text-primary dark:text-primary-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800'"
+              >
+                <HistoryIcon class="w-4 h-4" /> Dados de Acesso (Histórico)
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Overlay fundo escuro Mobile -->
+      <div 
+        v-if="isMobileMenuOpen" 
+        @click="isMobileMenuOpen = false"
+        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-10 lg:hidden"
+      ></div>
+
+      <!-- Main Content Panel (Painel de Recheio / Abas) -->
+      <main class="flex-1 overflow-y-auto bg-white dark:bg-slate-950 p-6 lg:p-12 pb-32">
+        <div class="max-w-4xl mx-auto space-y-8 min-h-[50vh]">
+
+          <!-- CONTEUDO DAS ABAS ENTRA AQUI NO PROXIMO CHUNK -->
+
+          <!-- ABA: Geral (Sistema) -->
+          <div v-if="activeTab === 'system'" class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
+              <h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <ActivityIcon class="w-5 h-5 text-primary" /> Visão Geral do Sistema
+              </h2>
+              <p class="text-sm text-slate-500 mt-1">Status global e parâmetros principais da organização.</p>
+            </div>
+            
+            <div class="p-8 text-center text-slate-500 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+              Módulo de configurações gerais em desenvolvimento...
+            </div>
+          </div>
+
+          <!-- ABA: Gestão de Usuários -->
+          <div v-if="activeTab === 'users'" class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div class="border-b border-slate-200 dark:border-slate-800 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <UsersIcon class="w-5 h-5 text-primary" /> Gestão de Usuários
+                </h2>
+                <p class="text-sm text-slate-500 mt-1">Gerencie os acessos, atendentes e administradores da plataforma.</p>
               </div>
-              
-              <div class="space-y-4">
-                <div class="space-y-2">
-                   <label class="text-sm font-bold uppercase text-slate-400">Categoria</label>
-                   <div class="relative">
-                     <select v-model="ragCategory" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 py-4 px-4 text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm transition-colors outline-none appearance-none cursor-pointer">
-                        <option value="geral">Geral</option>
-                        <option value="politicas">Políticas</option>
-                        <option value="servicos">Serviços</option>
-                        <option value="faq">FAQ</option>
-                        <option value="vacinas">Vacinação</option>
-                        <option value="campanhas">Campanhas</option>
-                     </select>
-                     <ChevronDownIcon class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-                   </div>
+              <button 
+                @click="isAddingUser = !isAddingUser"
+                class="bg-primary hover:bg-primary/90 text-white font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 text-sm shadow-sm"
+              >
+                <PlusIcon class="w-4 h-4" />
+                {{ isAddingUser ? 'Cancelar' : 'Novo Usuário' }}
+              </button>
+            </div>
+
+            <!-- Add User Modal -->
+            <BaseModal :show="isAddingUser" @close="isAddingUser = false" maxWidth="max-w-2xl">
+              <div class="space-y-6">
+                <div class="flex items-center justify-between">
+                  <h2 class="text-xl font-bold text-gray-900 dark:text-white">Adicionar Novo Usuário</h2>
+                  <button @click="isAddingUser = false" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <XIcon class="w-6 h-6" />
+                  </button>
                 </div>
                 
-                <BaseButton @click="saveRagContent" :disabled="isSavingRag" class="w-full justify-center">
-                  <span v-if="isSavingRag">Processando...</span>
-                  <span v-else class="flex items-center gap-2"><SaveIcon class="w-5 h-5" /> Salvar na Base</span>
-                </BaseButton>
-              </div>
-            </div>
-          </div>
-
-          <!-- Edit User Modal -->
-          <BaseModal :show="isEditingUser" @close="isEditingUser = false" maxWidth="max-w-2xl">
-            <div class="space-y-6">
-              <div class="flex items-center justify-between">
-                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Editar Usuário</h2>
-                <button @click="isEditingUser = false" class="text-slate-400 hover:text-slate-600 transition-colors">
-                  <XIcon class="w-6 h-6" />
-                </button>
-              </div>
-              
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div class="space-y-2">
-                   <label class="text-sm font-bold uppercase text-slate-400">Nome</label>
-                   <BaseInput v-model="editUserForm.name" placeholder="Nome completo" />
-                 </div>
-                 <div class="space-y-2">
-                   <label class="text-sm font-bold uppercase text-slate-400">Email</label>
-                   <BaseInput v-model="editUserForm.email" placeholder="email@exemplo.com" type="email" />
-                 </div>
-                 <div class="space-y-2">
-                   <label class="text-sm font-bold uppercase text-slate-400">Telefone</label>
-                   <BaseInput v-model="editUserForm.phone" placeholder="(00) 00000-0000" type="tel" />
-                 </div>
-                 <div class="space-y-2">
-                   <label class="text-sm font-bold uppercase text-slate-400">Nova Senha (Opcional)</label>
-                   <BaseInput v-model="editUserForm.password" placeholder="Deixe em branco para manter" type="password" />
-                 </div>
-                 <div class="space-y-2 md:col-span-2">
-                   <label class="text-sm font-bold uppercase text-slate-400">Cargo</label>
-                   <div class="relative">
-                     <select v-model="editUserForm.role" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 py-4 px-4 text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm transition-colors outline-none appearance-none cursor-pointer">
-                        <option value="user">Usuário (Agente)</option>
-                        <option value="admin">Administrador</option>
-                     </select>
-                     <ChevronDownIcon class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div class="space-y-2">
+                     <label class="text-sm font-bold uppercase text-slate-400">Nome</label>
+                     <BaseInput v-model="newUser.name" placeholder="Nome completo" />
                    </div>
-                 </div>
-              </div>
+                   <div class="space-y-2">
+                     <label class="text-sm font-bold uppercase text-slate-400">Email</label>
+                     <BaseInput v-model="newUser.email" placeholder="email@exemplo.com" type="email" />
+                   </div>
+                   <div class="space-y-2">
+                     <label class="text-sm font-bold uppercase text-slate-400">Telefone</label>
+                     <BaseInput v-model="newUser.phone" placeholder="(00) 00000-0000" type="tel" />
+                   </div>
+                   <div class="space-y-2">
+                     <label class="text-sm font-bold uppercase text-slate-400">Senha</label>
+                     <BaseInput v-model="newUser.password" placeholder="Senha segura" type="password" />
+                   </div>
+                   <div class="space-y-2 md:col-span-2">
+                     <label class="text-sm font-bold uppercase text-slate-400">Cargo</label>
+                     <div class="relative">
+                       <select v-model="newUser.role" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 py-4 px-4 text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm transition-colors outline-none appearance-none cursor-pointer">
+                          <option value="user">Usuário (Agente)</option>
+                          <option value="admin">Administrador</option>
+                       </select>
+                       <ChevronDownIcon class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                     </div>
+                   </div>
+                </div>
 
-              <div class="flex gap-4 pt-4">
-                <BaseButton @click="isEditingUser = false" class="bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-none dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
-                  Cancelar
-                </BaseButton>
-                <BaseButton @click="updateUser" :disabled="loading">
-                  <span v-if="loading">Salvando...</span>
-                  <span v-else class="flex items-center gap-2"><SaveIcon class="w-5 h-5" /> Salvar Alterações</span>
-                </BaseButton>
+                <div class="flex gap-4 pt-4">
+                  <BaseButton @click="isAddingUser = false" class="bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-none dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
+                    Cancelar
+                  </BaseButton>
+                  <BaseButton @click="createUser" :disabled="loading">
+                    <span v-if="loading">Criando...</span>
+                    <span v-else class="flex items-center gap-2"><PlusIcon class="w-5 h-5" /> Criar Usuário</span>
+                  </BaseButton>
+                </div>
               </div>
-            </div>
-          </BaseModal>
+            </BaseModal>
 
-          <!-- Confirmation Modal -->
+            <!-- Seção de Base de Conhecimento (RAG) migrada para rag_base -->
+            
+            <!-- Edit User Modal -->
+            <BaseModal :show="isEditingUser" @close="isEditingUser = false" maxWidth="max-w-2xl">
+              <div class="space-y-6">
+                <div class="flex items-center justify-between">
+                  <h2 class="text-xl font-bold text-gray-900 dark:text-white">Editar Usuário</h2>
+                  <button @click="isEditingUser = false" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <XIcon class="w-6 h-6" />
+                  </button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div class="space-y-2">
+                     <label class="text-sm font-bold uppercase text-slate-400">Nome</label>
+                     <BaseInput v-model="editUserForm.name" placeholder="Nome completo" />
+                   </div>
+                   <div class="space-y-2">
+                     <label class="text-sm font-bold uppercase text-slate-400">Email</label>
+                     <BaseInput v-model="editUserForm.email" placeholder="email@exemplo.com" type="email" />
+                   </div>
+                   <div class="space-y-2">
+                     <label class="text-sm font-bold uppercase text-slate-400">Telefone</label>
+                     <BaseInput v-model="editUserForm.phone" placeholder="(00) 00000-0000" type="tel" />
+                   </div>
+                   <div class="space-y-2">
+                     <label class="text-sm font-bold uppercase text-slate-400">Nova Senha (Opcional)</label>
+                     <BaseInput v-model="editUserForm.password" placeholder="Deixe em branco para manter" type="password" />
+                   </div>
+                   <div class="space-y-2 md:col-span-2">
+                     <label class="text-sm font-bold uppercase text-slate-400">Cargo</label>
+                     <div class="relative">
+                       <select v-model="editUserForm.role" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 py-4 px-4 text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm transition-colors outline-none appearance-none cursor-pointer">
+                          <option value="user">Usuário (Agente)</option>
+                          <option value="admin">Administrador</option>
+                       </select>
+                       <ChevronDownIcon class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                     </div>
+                   </div>
+                </div>
+
+                <div class="flex gap-4 pt-4">
+                  <BaseButton @click="isEditingUser = false" class="bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-none dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
+                    Cancelar
+                  </BaseButton>
+                  <BaseButton @click="updateUser" :disabled="loading">
+                    <span v-if="loading">Salvando...</span>
+                    <span v-else class="flex items-center gap-2"><SaveIcon class="w-5 h-5" /> Salvar Alterações</span>
+                  </BaseButton>
+                </div>
+              </div>
+            </BaseModal>
+
+          <!-- Confirmation Modal Global (Movemos para fora das abas para ficar global) -->
           <BaseModal :show="confirmModal.show" @close="confirmModal.show = false" maxWidth="max-w-md">
             <div class="space-y-6">
               <div class="flex items-center gap-4">
@@ -689,12 +808,12 @@ onUnmounted(() => {
             </div>
           </BaseModal>
           
-          <div class="overflow-x-auto">
+          <div class="overflow-x-auto bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
             <table class="w-full text-left">
               <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-sm">
                 <tr>
                   <th class="px-6 py-4 font-medium">Nome</th>
-                  <th class="px-6 py-4 font-medium">Email</th> <!-- Note: Email is not in profiles table by default, might need join with auth.users or store in profiles -->
+                  <th class="px-6 py-4 font-medium">Email</th> 
                   <th class="px-6 py-4 font-medium">Cargo</th>
                   <th class="px-6 py-4 font-medium text-center">Status</th>
                   <th class="px-6 py-4 font-medium text-right">Ações</th>
@@ -751,14 +870,83 @@ onUnmounted(() => {
               </tbody>
             </table>
           </div>
-        </div>
-
-        <!-- System Configuration -->
-        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-          <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
-            <SettingsIcon class="text-primary w-6 h-6" />
-            <h2 class="font-bold uppercase tracking-wider text-xs text-slate-400">Configuração do Atendimento IA</h2>
           </div>
+
+          <!-- ABA: Perfis Mestre (Placeholder) -->
+          <div v-if="activeTab === 'roles'" class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
+              <h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <ShieldCheckIcon class="w-5 h-5 text-primary" /> Perfis e Permissões
+              </h2>
+              <p class="text-sm text-slate-500 mt-1">Níveis de acesso e ACL da plataforma.</p>
+            </div>
+            
+            <div class="p-8 text-center text-slate-500 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+              Módulo de Perfis (RBAC) em desenvolvimento...
+            </div>
+          </div>
+
+          <!-- ABA: IAM / RAG Base de Conhecimento -->
+          <div v-if="activeTab === 'rag_base'" class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
+              <h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <DatabaseIcon class="w-5 h-5 text-primary" /> Base de Conhecimento (IA)
+              </h2>
+              <p class="text-sm text-slate-500 mt-1">Adicione informações em Markdown para treinar o assistente virtual. Use títulos (##) para separar tópicos.</p>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm p-6">
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="md:col-span-3 space-y-4">
+                  <div class="space-y-2">
+                    <label class="text-sm font-bold uppercase text-slate-400">Conteúdo (Markdown)</label>
+                    <textarea 
+                      v-model="ragMarkdown"
+                      rows="14"
+                      class="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-4 px-4 text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm transition-colors outline-none resize-y font-mono shadow-sm"
+                      placeholder="## Título do Tópico&#10;Conteúdo explicativo aqui..."
+                    ></textarea>
+                  </div>
+                </div>
+                
+                <div class="space-y-4">
+                  <div class="space-y-2">
+                    <label class="text-sm font-bold uppercase text-slate-400">Categoria/Domínio</label>
+                    <div class="relative">
+                      <select v-model="ragCategory" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-4 px-4 text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm transition-colors outline-none appearance-none cursor-pointer">
+                          <option value="geral">Geral</option>
+                          <option value="politicas">Políticas</option>
+                          <option value="servicos">Serviços</option>
+                          <option value="faq">FAQ</option>
+                          <option value="vacinas">Vacinação</option>
+                          <option value="campanhas">Campanhas</option>
+                      </select>
+                      <ChevronDownIcon class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+                  
+                  <div class="pt-4">
+                    <BaseButton @click="saveRagContent" :disabled="isSavingRag" class="w-full justify-center">
+                      <span v-if="isSavingRag">Processando...</span>
+                      <span v-else class="flex items-center gap-2"><SaveIcon class="w-5 h-5" /> Salvar na Base</span>
+                    </BaseButton>
+                  </div>
+                  <div class="text-[11px] text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 mt-4 text-center">
+                    A IA indexará este arquivo automaticamente. Ele pode ser consultado pelo agente instantaneamente num próximo atendimento.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ABA: Comportamento da IA -->
+          <div v-if="activeTab === 'ai_behaviors'" class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
+              <h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <CpuIcon class="w-5 h-5 text-primary" /> Configuração do Agente IA
+              </h2>
+              <p class="text-sm text-slate-500 mt-1">Horários de atendimento e comportamento global da personalidade do Assistente Virtual.</p>
+            </div>
           
           <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
             <!-- Service Hours -->
@@ -856,259 +1044,314 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Boarding Locations Management -->
-        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-          <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-              <MapPinIcon class="text-primary w-6 h-6" />
-              <h2 class="font-bold uppercase tracking-wider text-xs text-slate-400">Locais de Embarque</h2>
+          <!-- ABA: Locais de Embarque -->
+          <div v-if="activeTab === 'boarding'" class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div class="border-b border-slate-200 dark:border-slate-800 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <MapPinIcon class="w-5 h-5 text-primary" /> Locais de Embarque
+                </h2>
+                <p class="text-sm text-slate-500 mt-1">Gerencie os bairros e pontos de coleta da Van / Veículos.</p>
+              </div>
+              <button 
+                @click="isAddingNeighborhood = !isAddingNeighborhood"
+                class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm text-sm"
+              >
+                <PlusIcon class="w-4 h-4" />
+                {{ isAddingNeighborhood ? 'Cancelar' : 'Novo Bairro' }}
+              </button>
             </div>
-            <button 
-              @click="isAddingNeighborhood = !isAddingNeighborhood"
-              class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold py-2 px-6 rounded-lg transition-all flex items-center gap-2"
-            >
-              <PlusIcon class="w-5 h-5" />
-              {{ isAddingNeighborhood ? 'Cancelar' : 'Novo Bairro' }}
-            </button>
-          </div>
-          
-          <!-- Add New Neighborhood Modal -->
-          <BaseModal :show="isAddingNeighborhood" @close="isAddingNeighborhood = false" maxWidth="max-w-2xl">
-             <div class="space-y-6">
-               <div class="flex items-center justify-between">
-                 <h2 class="text-xl font-bold text-gray-900 dark:text-white">Adicionar Novo Bairro</h2>
-                 <button @click="isAddingNeighborhood = false" class="text-slate-400 hover:text-slate-600 transition-colors">
-                   <XIcon class="w-6 h-6" />
-                 </button>
-               </div>
-               
-               <div class="grid grid-cols-1 gap-6">
-                  <div class="space-y-2">
-                    <label class="text-sm font-bold uppercase text-slate-400">Nome do Bairro</label>
-                    <BaseInput v-model="newLocation.neighborhood" placeholder="Ex: Centro" />
-                  </div>
-                  <div class="space-y-2">
-                    <label class="text-sm font-bold uppercase text-slate-400">Primeiro Ponto de Embarque</label>
-                    <BaseInput v-model="newLocation.point_name" placeholder="Ex: Praça Matriz" />
-                  </div>
-                  <div class="space-y-2">
-                    <label class="text-sm font-bold uppercase text-slate-400">Descrição (Opcional)</label>
-                    <BaseInput v-model="newLocation.description" placeholder="Ref: Em frente ao banco" />
-                  </div>
-               </div>
+            
+            <!-- Add New Neighborhood Modal -->
+            <BaseModal :show="isAddingNeighborhood" @close="isAddingNeighborhood = false" maxWidth="max-w-2xl">
+               <div class="space-y-6">
+                 <div class="flex items-center justify-between">
+                   <h2 class="text-xl font-bold text-gray-900 dark:text-white">Adicionar Novo Bairro</h2>
+                   <button @click="isAddingNeighborhood = false" class="text-slate-400 hover:text-slate-600 transition-colors">
+                     <XIcon class="w-6 h-6" />
+                   </button>
+                 </div>
+                 
+                 <div class="grid grid-cols-1 gap-6">
+                    <div class="space-y-2">
+                      <label class="text-sm font-bold uppercase text-slate-400">Nome do Bairro</label>
+                      <BaseInput v-model="newLocation.neighborhood" placeholder="Ex: Centro" />
+                    </div>
+                    <div class="space-y-2">
+                      <label class="text-sm font-bold uppercase text-slate-400">Primeiro Ponto de Embarque</label>
+                      <BaseInput v-model="newLocation.point_name" placeholder="Ex: Praça Matriz" />
+                    </div>
+                    <div class="space-y-2">
+                      <label class="text-sm font-bold uppercase text-slate-400">Descrição (Opcional)</label>
+                      <BaseInput v-model="newLocation.description" placeholder="Ref: Em frente ao banco" />
+                    </div>
+                 </div>
 
-               <div class="flex gap-4 pt-4">
-                 <BaseButton @click="isAddingNeighborhood = false" class="bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-none dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
-                   Cancelar
-                 </BaseButton>
-                 <BaseButton @click="addBoardingLocation()">
-                   Salvar
-                 </BaseButton>
+                 <div class="flex gap-4 pt-4">
+                   <BaseButton @click="isAddingNeighborhood = false" class="bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-none dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
+                     Cancelar
+                   </BaseButton>
+                   <BaseButton @click="addBoardingLocation()">
+                     Salvar
+                   </BaseButton>
+                 </div>
                </div>
-             </div>
-          </BaseModal>
+            </BaseModal>
 
-          <!-- Add Point to Existing Neighborhood Modal -->
-          <BaseModal :show="!!addingPointTo" @close="addingPointTo = null" maxWidth="max-w-2xl">
-             <div class="space-y-6">
-               <div class="flex items-center justify-between">
-                 <h2 class="text-xl font-bold text-gray-900 dark:text-white">Adicionar Ponto em <span class="text-primary">{{ addingPointTo }}</span></h2>
-                 <button @click="addingPointTo = null" class="text-slate-400 hover:text-slate-600 transition-colors">
-                   <XIcon class="w-6 h-6" />
-                 </button>
-               </div>
-               
-               <div class="grid grid-cols-1 gap-6">
-                  <div class="space-y-2">
-                    <label class="text-sm font-bold uppercase text-slate-400">Nome do Ponto</label>
-                    <BaseInput v-model="newLocation.point_name" placeholder="Nome do ponto" autofocus />
-                  </div>
-                  <div class="space-y-2">
-                    <label class="text-sm font-bold uppercase text-slate-400">Descrição (Opcional)</label>
-                    <BaseInput v-model="newLocation.description" placeholder="Referência" />
-                  </div>
-               </div>
+            <!-- Add Point to Existing Neighborhood Modal -->
+            <BaseModal :show="!!addingPointTo" @close="addingPointTo = null" maxWidth="max-w-2xl">
+               <div class="space-y-6">
+                 <div class="flex items-center justify-between">
+                   <h2 class="text-xl font-bold text-gray-900 dark:text-white">Adicionar Ponto em <span class="text-primary">{{ addingPointTo }}</span></h2>
+                   <button @click="addingPointTo = null" class="text-slate-400 hover:text-slate-600 transition-colors">
+                     <XIcon class="w-6 h-6" />
+                   </button>
+                 </div>
+                 
+                 <div class="grid grid-cols-1 gap-6">
+                    <div class="space-y-2">
+                      <label class="text-sm font-bold uppercase text-slate-400">Nome do Ponto</label>
+                      <BaseInput v-model="newLocation.point_name" placeholder="Nome do ponto" autofocus />
+                    </div>
+                    <div class="space-y-2">
+                      <label class="text-sm font-bold uppercase text-slate-400">Descrição (Opcional)</label>
+                      <BaseInput v-model="newLocation.description" placeholder="Referência" />
+                    </div>
+                 </div>
 
-               <div class="flex gap-4 pt-4">
-                 <BaseButton @click="addingPointTo = null" class="bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-none dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
-                   Cancelar
-                 </BaseButton>
-                 <BaseButton @click="addBoardingLocation(addingPointTo!)">
-                   Salvar
-                 </BaseButton>
+                 <div class="flex gap-4 pt-4">
+                   <BaseButton @click="addingPointTo = null" class="bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-none dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
+                     Cancelar
+                   </BaseButton>
+                   <BaseButton @click="addBoardingLocation(addingPointTo!)">
+                     Salvar
+                   </BaseButton>
+                 </div>
                </div>
-             </div>
-          </BaseModal>
- 
-           <div class="divide-y divide-slate-100 dark:divide-slate-800">
-            <div v-for="(points, neighborhood) in groupedLocations" :key="neighborhood" class="group">
-                <!-- Neighborhood Header -->
-                <div class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer select-none" @click="toggleNeighborhood(String(neighborhood))">
-                    <div class="flex items-center gap-3">
-                        <button class="text-slate-400">
-                            <ChevronDownIcon v-if="expandedNeighborhoods.includes(String(neighborhood))" class="w-5 h-5" />
-                            <ChevronRightIcon v-else class="w-5 h-5" />
-                        </button>
-                        <div>
-                            <h3 class="font-bold text-gray-900 dark:text-gray-100">{{ neighborhood }}</h3>
-                            <p class="text-xs text-slate-500">{{ points.length }} pontos cadastrados</p>
+            </BaseModal>
+   
+            <div class="bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+              <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                <div v-for="(points, neighborhood) in groupedLocations" :key="neighborhood" class="group">
+                    <!-- Neighborhood Header -->
+                    <div class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer select-none" @click="toggleNeighborhood(String(neighborhood))">
+                        <div class="flex items-center gap-3">
+                            <button class="text-slate-400">
+                                <ChevronDownIcon v-if="expandedNeighborhoods.includes(String(neighborhood))" class="w-5 h-5" />
+                                <ChevronRightIcon v-else class="w-5 h-5" />
+                            </button>
+                            <div>
+                                <h3 class="font-bold text-gray-900 dark:text-gray-100">{{ neighborhood }}</h3>
+                                <p class="text-xs text-slate-500">{{ points.length }} pontos cadastrados</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2" @click.stop>
+                            <button 
+                                @click="addingPointTo = (addingPointTo === neighborhood ? null : String(neighborhood))"
+                                class="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors text-xs font-bold flex items-center gap-1"
+                            >
+                                <PlusIcon class="w-4 h-4" />
+                                Add Ponto
+                            </button>
+                            <button @click="deleteNeighborhood(String(neighborhood))" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                                <Trash2Icon class="w-4 h-4" />
+                            </button>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2" @click.stop>
-                        <button 
-                            @click="addingPointTo = (addingPointTo === neighborhood ? null : String(neighborhood))"
-                            class="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors text-xs font-bold flex items-center gap-1"
-                        >
-                            <PlusIcon class="w-4 h-4" />
-                            Add Ponto
-                        </button>
-                        <button @click="deleteNeighborhood(String(neighborhood))" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
-                            <Trash2Icon class="w-4 h-4" />
-                        </button>
+
+                    <!-- Points List & Add Form -->
+                    <div v-if="expandedNeighborhoods.includes(String(neighborhood))" class="pl-12 pr-4 pb-4 space-y-2">
+                        <!-- Points Table -->
+                        <div class="border border-slate-100 dark:border-slate-800 rounded-lg overflow-hidden">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50 dark:bg-slate-800/30 text-slate-500">
+                                    <tr>
+                                        <th class="px-4 py-2 font-medium">Ponto</th>
+                                        <th class="px-4 py-2 font-medium">Referência</th>
+                                        <th class="px-4 py-2 text-right"></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                                    <tr v-for="point in points" :key="point.id" class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 bg-white dark:bg-slate-900/50">
+                                        <td class="px-4 py-2 text-slate-700 dark:text-slate-300 font-medium">{{ point.point_name }}</td>
+                                        <td class="px-4 py-2 text-slate-500">{{ point.description || '-' }}</td>
+                                        <td class="px-4 py-2 text-right">
+                                            <button @click="deleteBoardingLocation(point.id)" class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors">
+                                                <Trash2Icon class="w-4 h-4" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-
-                <!-- Points List & Add Form -->
-                <div v-if="expandedNeighborhoods.includes(String(neighborhood))" class="pl-12 pr-4 pb-4 space-y-2">
-
-
-                    <!-- Points Table -->
-                    <div class="border border-slate-100 dark:border-slate-800 rounded-lg overflow-hidden">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-slate-50 dark:bg-slate-800/30 text-slate-500">
-                                <tr>
-                                    <th class="px-4 py-2 font-medium">Ponto</th>
-                                    <th class="px-4 py-2 font-medium">Referência</th>
-                                    <th class="px-4 py-2 text-right"></th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                                <tr v-for="point in points" :key="point.id" class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                                    <td class="px-4 py-2 text-slate-700 dark:text-slate-300">{{ point.point_name }}</td>
-                                    <td class="px-4 py-2 text-slate-500">{{ point.description || '-' }}</td>
-                                    <td class="px-4 py-2 text-right">
-                                        <button @click="deleteBoardingLocation(point.id)" class="text-slate-400 hover:text-red-500 transition-colors">
-                                            <Trash2Icon class="w-3 h-3" />
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                
+                <div v-if="Object.keys(groupedLocations).length === 0" class="p-8 text-center text-slate-500">
+                    Nenhum local configurado. Adicione um bairro para começar.
                 </div>
-            </div>
-            
-            <div v-if="Object.keys(groupedLocations).length === 0" class="p-8 text-center text-slate-500">
-                Nenhum local configurado. Adicione um bairro para começar.
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- WhatsApp Connection Section -->
-      <section class="flex flex-col gap-6">
-        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 flex flex-col h-full">
-          <div class="flex items-center gap-3 mb-6">
-            <MessageCircleIcon class="text-[#25D366] w-6 h-6" />
-            <h2 class="font-bold uppercase tracking-wider text-xs text-slate-400">Conexão WhatsApp</h2>
-          </div>
-          
-          <div class="flex-1 flex flex-col items-center justify-center text-center">
-            <div class="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-400">
-              <span 
-                class="size-3 rounded-full transition-colors duration-300"
-                :class="isConnected ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-700'"
-              ></span>
-              {{ isConnected ? 'Conectado' : 'Desconectado' }}
-            </div>
-            
-            <div class="relative group cursor-pointer mb-6" v-if="!isConnected">
-              <div class="p-4 bg-white dark:bg-white rounded-lg border-4 border-primary/20 group-hover:border-primary transition-all shadow-xl">
-                <QrcodeVue :value="qrCodeValue" :size="200" level="H" class="opacity-80 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/40 dark:bg-black/40 backdrop-blur-[2px] rounded-lg transition-all pointer-events-none">
-                <RefreshCwIcon class="w-10 h-10 text-background-dark dark:text-white" />
               </div>
             </div>
+          </div>
 
-             <div v-else class="mb-6 flex flex-col items-center justify-center h-48 w-full bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                <ShieldCheckIcon class="w-16 h-16 text-green-500 mb-2" />
-                <p class="text-green-700 dark:text-green-400 font-medium">Sessão Ativa</p>
+          <!-- ABA: Tipos de Procedimento (Placeholder) -->
+          <div v-if="activeTab === 'procedures'" class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
+              <h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <BriefcaseIcon class="w-5 h-5 text-primary" /> Especialidades e Exames
+              </h2>
+              <p class="text-sm text-slate-500 mt-1">Nomenclaturas padronizadas de destinos de viagem.</p>
+            </div>
+            
+            <div class="p-8 text-center text-slate-500 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+              Módulo de Procedimentos em desenvolvimento...
+            </div>
+          </div>
+
+          <!-- ABA: WhatsApp / Bot Config -->
+          <div v-if="activeTab === 'bot_config'" class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
+              <h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <MessageCircleIcon class="w-5 h-5 text-green-500" /> Integração WhatsApp
+              </h2>
+              <p class="text-sm text-slate-500 mt-1">Conecte um dispositivo móvel para habilitar o chatbot.</p>
             </div>
 
-            <p class="text-sm text-slate-500 dark:text-slate-400 px-4 mb-8" v-if="!isConnected">
-              Abra o WhatsApp no seu celular, vá em <b>Aparelhos Conectados</b> e escaneie o código acima.
-            </p>
+            <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 max-w-lg mx-auto mt-8 flex flex-col h-full">
+              <div class="flex-1 flex flex-col items-center justify-center text-center">
+                <div class="mb-4 flex items-center gap-2 text-sm font-semibold" :class="isConnected ? 'text-green-500' : 'text-slate-400'">
+                  <span 
+                    class="size-3 rounded-full transition-colors duration-300"
+                    :class="isConnected ? 'bg-green-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-700'"
+                  ></span>
+                  {{ isConnected ? 'Dispositivo Conectado' : 'Aguardando Conexão' }}
+                </div>
+                
+                <div class="relative group cursor-pointer mb-6" v-if="!isConnected">
+                  <div class="p-4 bg-white dark:bg-white rounded-xl border-[5px] border-primary/10 group-hover:border-primary/30 transition-all shadow-xl">
+                    <QrcodeVue :value="qrCodeValue" :size="240" level="H" class="opacity-80 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/40 dark:bg-black/40 backdrop-blur-[2px] rounded-xl transition-all pointer-events-none">
+                    <RefreshCwIcon class="w-12 h-12 text-background-dark dark:text-white" />
+                  </div>
+                </div>
 
-            <div class="w-full flex flex-col gap-3">
-              <button 
-                @click="handleRefreshQR"
-                v-if="!isConnected"
-                class="w-full py-3 px-4 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors text-gray-700 dark:text-gray-300"
-              >
-                <RefreshCwIcon class="w-4 h-4" />
-                Atualizar QR Code
-              </button>
+                 <div v-else class="mb-6 flex flex-col items-center justify-center py-10 w-full bg-green-50 dark:bg-green-500/10 rounded-xl border border-green-200 dark:border-green-500/20">
+                    <ShieldCheckIcon class="w-20 h-20 text-green-500 mb-4" />
+                    <p class="text-green-700 dark:text-green-400 font-bold text-lg">Sessão WhatsApp Ativa</p>
+                    <p class="text-green-600/70 dark:text-green-400/70 text-sm mt-1">O robô está processando mensagens</p>
+                </div>
+
+                <p class="text-sm text-slate-500 dark:text-slate-400 px-4 mb-8" v-if="!isConnected">
+                  Abra o WhatsApp no seu celular, vá em <b>Aparelhos Conectados</b> e escaneie o código acima.
+                </p>
+
+                <div class="w-full flex flex-col gap-3">
+                  <button 
+                    @click="handleRefreshQR"
+                    v-if="!isConnected"
+                    class="w-full py-3 px-4 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors text-gray-700 dark:text-gray-300 shadow-sm"
+                  >
+                    <RefreshCwIcon class="w-4 h-4" />
+                    Atualizar QR Code
+                  </button>
+                  
+                  <button 
+                    @click="handleDisconnect"
+                    v-if="isConnected"
+                    class="w-full py-3 px-4 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors border border-red-100 dark:border-red-900/30"
+                  >
+                    <LogOutIcon class="w-4 h-4" />
+                    Desconectar Dispositivo
+                  </button>
+                </div>
+              </div>
               
-              <button 
-                @click="handleDisconnect"
-                v-if="isConnected"
-                class="w-full py-3 px-4 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors"
-              >
-                <UnlinkIcon class="w-4 h-4" />
-                Desconectar Dispositivo
-              </button>
+              <div class="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400 flex flex-col gap-1 items-center">
+                <p>Status do Servidor Express: <span class="font-mono text-primary">{{ connectionStatus }}</span></p>
+                <div class="flex justify-between w-full mt-2">
+                  <span>Client v2.4.12-stable</span>
+                  <span>{{ new Date().toLocaleDateString() }}</span>
+                </div>
+              </div>
             </div>
           </div>
-          
-          <div class="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400 flex flex-col gap-1">
-            <div class="flex justify-between">
-              <span>Versão do Client:</span>
-              <span class="font-mono">v2.4.12-stable</span>
-            </div>
-            <div class="flex justify-between">
-              <span>Última Atividade:</span>
-              <span>{{ new Date().toLocaleDateString() }}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
 
-    <!-- Footer / Integration Stats -->
-    <footer class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-primary/5 border border-primary/10 p-4 rounded-xl flex items-center gap-4">
-        <div class="size-10 bg-primary/20 rounded-lg flex items-center justify-center text-primary">
-          <DatabaseIcon class="w-5 h-5" />
-        </div>
-        <div>
-          <p class="text-[10px] uppercase font-bold text-slate-400">Armazenamento</p>
-          <p class="text-sm font-bold text-gray-900 dark:text-gray-100">12.4 GB / 100 GB</p>
-        </div>
-      </div>
-      
-      <div class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex items-center gap-4">
-        <div class="size-10 bg-slate-200 dark:bg-slate-800 rounded-lg flex items-center justify-center text-slate-500">
-          <ShieldCheckIcon class="w-5 h-5" />
-        </div>
-        <div>
-          <p class="text-[10px] uppercase font-bold text-slate-400">Certificado SSL</p>
-          <p class="text-sm font-bold text-primary">Ativo & Seguro</p>
-        </div>
-      </div>
-      
-      <div class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex items-center gap-4">
-        <div class="size-10 bg-slate-200 dark:bg-slate-800 rounded-lg flex items-center justify-center text-slate-500">
-          <HistoryIcon class="w-5 h-5" />
-        </div>
-        <div>
-          <p class="text-[10px] uppercase font-bold text-slate-400">Logs de Acesso</p>
-          <p class="text-sm font-bold text-gray-900 dark:text-gray-100">Ver Histórico Completo</p>
-        </div>
-      </div>
-    </footer>
+          <!-- ABA: Autenticação (Placeholder) -->
+          <div v-if="activeTab === 'auth_security'" class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
+              <h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <KeyIcon class="w-5 h-5 text-primary" /> Autenticação Genérica
+              </h2>
+              <p class="text-sm text-slate-500 mt-1">Configurações de login, senhas e provedores externos.</p>
+            </div>
+            
+            <div class="p-8 text-center text-slate-500 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+              Módulo de Segurança e SSO em desenvolvimento...
+            </div>
+          </div>
+
+          <!-- ABA: Logs de Acesso -->
+          <div v-if="activeTab === 'logs'" class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
+              <h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <HistoryIcon class="w-5 h-5 text-primary" /> Dados de Acesso e Infraestrutura
+              </h2>
+              <p class="text-sm text-slate-500 mt-1">Métricas de armazenamento e segurança de tráfego.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+              <div class="bg-primary/5 border border-primary/20 p-5 rounded-xl flex flex-col gap-4 shadow-sm">
+                <div class="size-12 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
+                  <DatabaseIcon class="w-6 h-6" />
+                </div>
+                <div>
+                  <p class="text-xs uppercase font-bold text-slate-500 tracking-wider">Armazenamento (Bucket)</p>
+                  <p class="text-2xl font-black text-gray-900 dark:text-white mt-1">12.4 GB</p>
+                  <p class="text-xs text-primary font-medium mt-1">/ 100 GB Limite</p>
+                </div>
+              </div>
+              
+              <div class="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-5 rounded-xl flex flex-col gap-4 shadow-sm">
+                <div class="size-12 bg-green-100 dark:bg-green-500/20 rounded-xl flex items-center justify-center text-green-600 dark:text-green-400">
+                  <ShieldCheckIcon class="w-6 h-6" />
+                </div>
+                <div>
+                  <p class="text-xs uppercase font-bold text-slate-500 tracking-wider">Segurança HTTPS</p>
+                  <p class="text-xl font-bold text-green-600 dark:text-green-400 mt-1">Ativo & Seguro</p>
+                  <p class="text-xs text-slate-400 mt-1">Certificado SSL Válido</p>
+                </div>
+              </div>
+              
+              <div class="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-5 rounded-xl flex flex-col gap-4 shadow-sm">
+                <div class="size-12 bg-slate-200 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-300">
+                  <ActivityIcon class="w-6 h-6" />
+                </div>
+                <div>
+                  <p class="text-xs uppercase font-bold text-slate-500 tracking-wider">Tráfego de Rede</p>
+                  <button class="mt-2 text-sm font-bold text-primary hover:text-primary/80 transition-colors flex items-center gap-1">
+                    Ver Histórico Completo <ChevronRightIcon class="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div> <!-- Fechamento da div max-w-4xl (conteudo abas) -->
+      </main> <!-- Fechamento da main do Sidebar -->
+    </div> <!-- Fechamento do Wrapper Sidebar+Main -->
 
     <!-- Global Feedback Modals -->
+    <ConfirmModal 
+      :show="confirmModal.show" 
+      :title="confirmModal.title" 
+      :message="confirmModal.message"
+      :type="confirmModal.type"
+      :confirm-text="confirmModal.confirmText"
+      @confirm="handleConfirmAction"
+      @cancel="confirmModal.show = false"
+    />
+
     <SuccessModal 
       :show="successModal.show" 
       :title="successModal.title" 

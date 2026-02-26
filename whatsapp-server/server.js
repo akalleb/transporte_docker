@@ -78,7 +78,7 @@ async function connectToWhatsApp() {
 
     if (connection === 'close') {
       const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut
-      
+
       console.log('Conexão fechada. Motivo:', lastDisconnect?.error)
       console.log('Deve reconectar?', shouldReconnect)
 
@@ -88,11 +88,11 @@ async function connectToWhatsApp() {
 
       if (shouldReconnect) {
         if (retryCount < MAX_RETRIES) {
-            retryCount++
-            console.log(`Tentando reconectar... (${retryCount}/${MAX_RETRIES})`)
-            setTimeout(connectToWhatsApp, 3000) // Espera 3s antes de reconectar
+          retryCount++
+          console.log(`Tentando reconectar... (${retryCount}/${MAX_RETRIES})`)
+          setTimeout(connectToWhatsApp, 3000) // Espera 3s antes de reconectar
         } else {
-            console.error('Muitas tentativas falhas. Parando reconexão automática.')
+          console.error('Muitas tentativas falhas. Parando reconexão automática.')
         }
       } else {
         console.log('Desconectado. Limpando credenciais...')
@@ -126,8 +126,8 @@ async function connectToWhatsApp() {
     const isDocument = !!msg.message?.documentMessage
 
     if (!text && (isImage || isDocument)) {
-        text = isImage ? '[IMAGEM]' : '[DOCUMENTO]'
-        console.log('Mídia recebida sem legenda, processando...')
+      text = isImage ? '[IMAGEM]' : '[DOCUMENTO]'
+      console.log('Mídia recebida sem legenda, processando...')
     }
 
     if (!text) return
@@ -137,110 +137,121 @@ async function connectToWhatsApp() {
     phone = phone.replace('@lid', '')
 
     if (msg.key.participant) {
-        phone = msg.key.participant.replace('@s.whatsapp.net', '').replace('@lid', '')
+      phone = msg.key.participant.replace('@s.whatsapp.net', '').replace('@lid', '')
     }
 
     console.log(`Nova mensagem de ${pushName} (${phone}): ${text}`)
 
     try {
-        let publicUrl = null
-        
-        // Se for imagem, fazer upload
-        if (isImage || isDocument) {
-            try {
-                console.log('Baixando mídia...')
-                const buffer = await downloadMediaMessage(
-                    msg,
-                    'buffer',
-                    { logger: pino({ level: 'silent' }) }
-                )
-                
-                // Upload to Supabase Storage
-                const fileName = `whatsapp/${Date.now()}_${phone.replace(/[^0-9]/g, '')}.${isDocument ? 'pdf' : 'jpg'}`
-                const { data, error } = await supabase.storage
-                    .from('requisicoes') // Bucket correto
-                    .upload(fileName, buffer, {
-                        contentType: isDocument ? 'application/pdf' : 'image/jpeg',
-                        upsert: false
-                    })
+      let publicUrl = null
 
-                if (!error && data) {
-                    const { data: publicData } = supabase.storage
-                        .from('requisicoes')
-                        .getPublicUrl(fileName)
-                    publicUrl = publicData.publicUrl
-                    console.log('Mídia salva:', publicUrl)
-                } else {
-                    console.error('Erro upload storage:', error)
-                }
-            } catch (e) {
-                console.error('Erro ao baixar/salvar mídia:', e)
-            }
-        }
+      // Se for imagem, fazer upload
+      if (isImage || isDocument) {
+        try {
+          console.log('Baixando mídia...')
+          const buffer = await downloadMediaMessage(
+            msg,
+            'buffer',
+            { logger: pino({ level: 'silent' }) }
+          )
 
-        // Webhook para Supabase
-        const webhookUrl = `${SUPABASE_URL}/functions/v1/webhook-whatsapp`
-        const response = await axios.post(webhookUrl, {
-            phone,
-            text,
-            pushName,
-            sender: 'contact',
-            contact_jid: remoteJid,
-            mediaUrl: publicUrl
-        }, {
-            headers: {
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                'Content-Type': 'application/json'
-            }
-        })
-
-        if (response.data && response.data.conversation_id) {
-            // Notificar frontend via Socket.io
-            io.emit('new_message', {
-                phone: phone,
-                content: text,
-                sender: 'contact',
-                type: isImage ? 'image' : (isDocument ? 'document' : 'text'),
-                timestamp: new Date().toISOString(),
-                pushName: pushName,
-                mediaUrl: publicUrl,
-                contact_jid: remoteJid
+          // Upload to Supabase Storage
+          const fileName = `whatsapp/${Date.now()}_${phone.replace(/[^0-9]/g, '')}.${isDocument ? 'pdf' : 'jpg'}`
+          const { data, error } = await supabase.storage
+            .from('requisicoes') // Bucket correto
+            .upload(fileName, buffer, {
+              contentType: isDocument ? 'application/pdf' : 'image/jpeg',
+              upsert: false
             })
 
-            // NEW:
-            try {
-                const { data: conversa } = await supabase
-                   .from("conversations")
-                   .select("is_bot_active")
-                   .eq("id", response.data.conversation_id)
-                   .single();
-                
-                if (conversa?.is_bot_active) {
-                    console.log(`Processando IA para ${phone}...`);
-                    const { texto, transferido, motivo } = await processarMensagemComIA(phone, text);
-                    
-                    if (texto) {
-                        await sock.sendMessage(remoteJid, { text: texto });
-                    }
-                    
-                    if (transferido) {
-                        io.emit("bot_transferiu", { telefone: phone, motivo });
-                    }
-                }
-            } catch (err) {
-                console.error("Erro ao processar IA:", err);
+          if (!error && data) {
+            const { data: publicData } = supabase.storage
+              .from('requisicoes')
+              .getPublicUrl(fileName)
+            publicUrl = publicData.publicUrl
+            console.log('Mídia salva:', publicUrl)
+          } else {
+            console.error('Erro upload storage:', error)
+          }
+        } catch (e) {
+          console.error('Erro ao baixar/salvar mídia:', e)
+        }
+      }
+
+      // Webhook para Supabase
+      const webhookUrl = `${SUPABASE_URL}/functions/v1/webhook-whatsapp`
+      const response = await axios.post(webhookUrl, {
+        phone,
+        text,
+        pushName,
+        sender: 'contact',
+        contact_jid: remoteJid,
+        mediaUrl: publicUrl
+      }, {
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.data && response.data.conversation_id) {
+        // Update contact_jid (se a Edge function falhar em gravar, o server força)
+        await supabase
+          .from('conversations')
+          .update({ contact_jid: remoteJid })
+          .eq('id', response.data.conversation_id);
+
+        // Notificar frontend via Socket.io
+        io.emit('new_message', {
+          phone: phone,
+          content: text,
+          sender: 'contact',
+          type: isImage ? 'image' : (isDocument ? 'document' : 'text'),
+          timestamp: new Date().toISOString(),
+          pushName: pushName,
+          mediaUrl: publicUrl,
+          contact_jid: remoteJid
+        })
+
+        // NEW:
+        try {
+          const { data: conversa } = await supabase
+            .from("conversations")
+            .select("is_bot_active, contact_jid")
+            .eq("id", response.data.conversation_id)
+            .single();
+
+          if (conversa?.is_bot_active) {
+            console.log(`Processando IA para ${phone}...`);
+            const { texto, transferido, motivo } = await processarMensagemComIA(phone, text, null, sock);
+
+            if (texto) {
+              await sock.sendMessage(remoteJid, { text: texto });
             }
 
-            // OLD (Fallback):
-            // await handleMessage({
-            //     conversation_id: response.data.conversation_id,
-            //     content: publicUrl || text, 
-            //     sender: 'contact',
-            //     type: isImage ? 'image' : (isDocument ? 'document' : 'text')
-            // }, sock)
+            if (transferido) {
+              await supabase
+                .from("conversations")
+                .update({ is_bot_active: false })
+                .eq("id", response.data.conversation_id);
+
+              io.emit("bot_transferiu", { telefone: phone, motivo });
+            }
+          }
+        } catch (err) {
+          console.error("Erro ao processar IA:", err);
         }
+
+        // OLD (Fallback):
+        // await handleMessage({
+        //     conversation_id: response.data.conversation_id,
+        //     content: publicUrl || text, 
+        //     sender: 'contact',
+        //     type: isImage ? 'image' : (isDocument ? 'document' : 'text')
+        // }, sock)
+      }
     } catch (err) {
-        console.error('Erro ao processar mensagem recebida:', err.message)
+      console.error('Erro ao processar mensagem recebida:', err.message)
     }
   })
 }
@@ -281,26 +292,57 @@ app.post('/logout', async (req, res) => {
 })
 
 app.post('/send-message', async (req, res) => {
-  const { phone, message } = req.body
+  const { phone, message, conversationId } = req.body
 
   if (!phone || !message) {
-    return res.status(400).json({ error: 'Phone and message are required' })
+    return res.status(400).json({ error: 'phone e message são obrigatórios' })
+  }
+
+  // Buscar contact_jid da conversa (preserva @lid)
+  let jid = phone
+  if (conversationId) {
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('contact_jid')
+      .eq('id', conversationId)
+      .single()
+    if (conv?.contact_jid) jid = conv.contact_jid
   }
 
   if (!isConnected || !sock) {
-    return res.status(503).json({ error: 'WhatsApp not connected' })
+    // Salvar como pending para polling enviar depois
+    await supabase.from('messages').insert({
+      conversation_id: conversationId,
+      content: message,
+      sender: 'agent',
+      status: 'pending',
+      recipient_jid: jid
+    })
+    return res.status(202).json({
+      queued: true,
+      message: 'WhatsApp desconectado. Mensagem enfileirada.'
+    })
   }
 
   try {
-    // Tenta formatar o JID se vier apenas número
-    let jid = phone
+    // Tenta formatar o JID se vier apenas número e não for um JID válido extraído
     if (!jid.includes('@s.whatsapp.net') && !jid.includes('@lid')) {
-        jid = formatJid(phone)
+      jid = formatJid(phone)
     }
 
     console.log(`[API] Enviando mensagem para ${jid}: ${message}`)
     const sentMsg = await sock.sendMessage(jid, { text: message })
-    
+
+    // Salvar no banco (mesmo após enviar com sucesso)
+    if (conversationId) {
+      await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        content: message,
+        sender: 'agent',
+        status: 'sent'
+      })
+    }
+
     res.json({ success: true, messageId: sentMsg.key.id })
   } catch (err) {
     console.error('Erro ao enviar mensagem via API:', err)
@@ -330,13 +372,13 @@ const processOutgoingMessage = async (message) => {
 
     let jid = conversation.contact_jid
     if (!jid) {
-        if (conversation.contact_phone && conversation.contact_phone.includes('@')) {
-            jid = conversation.contact_phone
-        } else {
-            jid = formatJid(conversation.contact_phone)
-        }
+      if (conversation.contact_phone && conversation.contact_phone.includes('@')) {
+        jid = conversation.contact_phone
+      } else {
+        jid = formatJid(conversation.contact_phone)
+      }
     }
-    
+
     console.log(`[Listener] Enviando mensagem para ${jid}: ${message.content}`)
 
     await sock.sendMessage(jid, { text: message.content })
@@ -348,6 +390,9 @@ const processOutgoingMessage = async (message) => {
 
   } catch (err) {
     console.error('Erro ao processar envio de mensagem (Listener):', err)
+    if (message && message.id) {
+      await supabase.from('messages').update({ status: 'failed' }).eq('id', message.id)
+    }
   }
 }
 
@@ -361,30 +406,33 @@ const setupSupabaseListener = () => {
   messageChannel = supabase
     .channel('public:messages')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: "sender=eq.agent" }, async (payload) => {
-      console.log('Nova mensagem do sistema detectada (Realtime):', payload.new)
-      await processOutgoingMessage(payload.new)
+      const msg = payload.new
+      if (['pending', 'sending'].includes(msg.status)) {
+        console.log('Nova mensagem do sistema detectada (Realtime):', msg)
+        await processOutgoingMessage(msg)
+      }
     })
     .subscribe()
 }
 
 const startPolling = () => {
-    setInterval(async () => {
-        if (!isConnected) return
-        
-        const { data: messages } = await supabase
-            .from('messages')
-            .select('*')
-            .eq('sender', 'agent')
-            .eq('status', 'sent')
-            .limit(10)
-            
-        if (messages && messages.length > 0) {
-            console.log(`[Polling] Encontradas ${messages.length} mensagens pendentes.`)
-            for (const msg of messages) {
-                await processOutgoingMessage(msg)
-            }
-        }
-    }, 10000)
+  setInterval(async () => {
+    if (!isConnected) return
+
+    const { data: messages } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('sender', 'agent')
+      .in('status', ['pending', 'sending'])
+      .limit(10)
+
+    if (messages && messages.length > 0) {
+      console.log(`[Polling] Encontradas ${messages.length} mensagens pendentes.`)
+      for (const msg of messages) {
+        await processOutgoingMessage(msg)
+      }
+    }
+  }, 10000)
 }
 
 server.listen(PORT, () => {
@@ -392,7 +440,7 @@ server.listen(PORT, () => {
   connectToWhatsApp()
   setupSupabaseListener()
   startPolling()
-  
+
   // Agendar limpeza diária (executa uma vez na inicialização e depois a cada 24h)
   cleanupStorage()
   setInterval(cleanupStorage, 24 * 60 * 60 * 1000)

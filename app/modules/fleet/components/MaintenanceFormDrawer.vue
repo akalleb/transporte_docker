@@ -79,19 +79,19 @@ const close = () => {
         @click="close"
       >
         <div 
-            class="bg-white w-full max-w-md h-full shadow-2xl overflow-y-auto flex flex-col"
+            class="bg-white dark:bg-slate-900 w-full max-w-md h-full shadow-2xl overflow-y-auto flex flex-col transition-colors"
             @click.stop
         >
-            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 sticky top-0 z-10">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 sticky top-0 z-10">
                 <div class="flex items-center gap-3">
-                    <div class="p-2 bg-amber-100 rounded-lg text-amber-600">
+                    <div class="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg text-amber-600 dark:text-amber-400">
                         <WrenchIcon class="w-5 h-5" />
                     </div>
-                    <h2 class="text-lg font-bold text-slate-900">
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white">
                         {{ isEdit ? 'Editar Manutenção' : 'Nova Manutenção' }}
                     </h2>
                 </div>
-                <button @click="close" class="p-2 hover:bg-slate-200 rounded-full text-slate-500">
+                <button @click="close" class="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-500 dark:text-slate-400 transition-colors">
                     <XIcon class="w-5 h-5" />
                 </button>
             </div>
@@ -100,19 +100,19 @@ const close = () => {
                 
                 <!-- Tipo de Manutenção -->
                 <div class="space-y-3">
-                    <label class="block text-sm font-bold text-slate-700 uppercase tracking-wide">Tipo de Serviço</label>
+                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Tipo de Serviço</label>
                     <div class="grid grid-cols-1 gap-3">
                         <div 
                             @click="form.type = 'preventive'"
-                            class="cursor-pointer border-2 rounded-xl p-4 flex items-start gap-4 transition-all hover:bg-green-50"
-                            :class="form.type === 'preventive' ? 'border-green-500 bg-green-50 ring-1 ring-green-500' : 'border-slate-200 hover:border-green-200'"
+                            class="cursor-pointer border-2 rounded-xl p-4 flex items-start gap-4 transition-all hover:bg-green-50 dark:hover:bg-green-900/20"
+                            :class="form.type === 'preventive' ? 'border-green-500 bg-green-50 dark:bg-green-900/20 ring-1 ring-green-500' : 'border-slate-200 dark:border-slate-700 hover:border-green-200 dark:hover:border-green-700'"
                         >
-                            <div class="p-2 bg-green-100 rounded-full text-green-600 mt-1">
+                            <div class="p-2 bg-green-100 dark:bg-green-900/40 rounded-full text-green-600 dark:text-green-400 mt-1">
                                 <CheckCircleIcon class="w-5 h-5" />
                             </div>
                             <div>
-                                <div class="font-bold text-slate-900">Preventiva / Revisão</div>
-                                <div class="text-xs text-slate-500 mt-1 leading-relaxed">
+                                <div class="font-bold text-slate-900 dark:text-white">Preventiva / Revisão</div>
+                                <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
                                     Manutenções programadas, trocas de óleo, revisões periódicas para evitar problemas.
                                 </div>
                             </div>
@@ -120,15 +120,15 @@ const close = () => {
 
                         <div 
                             @click="form.type = 'corrective'"
-                            class="cursor-pointer border-2 rounded-xl p-4 flex items-start gap-4 transition-all hover:bg-amber-50"
-                            :class="form.type === 'corrective' ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-500' : 'border-slate-200 hover:border-amber-200'"
+                            class="cursor-pointer border-2 rounded-xl p-4 flex items-start gap-4 transition-all hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                            :class="form.type === 'corrective' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-500' : 'border-slate-200 dark:border-slate-700 hover:border-amber-200 dark:hover:border-amber-700'"
                         >
-                            <div class="p-2 bg-amber-100 rounded-full text-amber-600 mt-1">
+                            <div class="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-full text-amber-600 dark:text-amber-400 mt-1">
                                 <AlertTriangleIcon class="w-5 h-5" />
                             </div>
                             <div>
-                                <div class="font-bold text-slate-900">Corretiva / Conserto</div>
-                                <div class="text-xs text-slate-500 mt-1 leading-relaxed">
+                                <div class="font-bold text-slate-900 dark:text-white">Corretiva / Conserto</div>
+                                <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
                                     Reparos de defeitos, quebras inesperadas, consertos de peças danificadas.
                                 </div>
                             </div>
@@ -137,11 +137,11 @@ const close = () => {
                 </div>
 
                 <div class="space-y-4">
-                    <label class="block text-sm font-bold text-slate-700 uppercase tracking-wide border-b pb-2">Detalhes da Execução</label>
+                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide border-b dark:border-slate-800 pb-2">Detalhes da Execução</label>
                     
                     <div class="grid grid-cols-2 gap-4">
                         <div class="col-span-2 sm:col-span-1">
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Data do Serviço</label>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Data do Serviço</label>
                             <BaseInput 
                                 v-model="form.date" 
                                 type="date" 
@@ -150,7 +150,7 @@ const close = () => {
                         </div>
 
                         <div class="col-span-2 sm:col-span-1">
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Custo Total (R$)</label>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Custo Total (R$)</label>
                             <BaseInput 
                                 v-model="form.cost" 
                                 type="number" 
@@ -161,7 +161,7 @@ const close = () => {
                         </div>
 
                         <div class="col-span-2">
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Oficina / Mecânico Responsável</label>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Oficina / Mecânico Responsável</label>
                             <BaseInput 
                                 v-model="form.mechanic" 
                                 placeholder="Ex: Auto Center Silva, Mecânico João..."
@@ -169,11 +169,11 @@ const close = () => {
                         </div>
 
                         <div class="col-span-2">
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Descrição do Serviço</label>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Descrição do Serviço</label>
                             <textarea 
                                 v-model="form.description"
                                 rows="6"
-                                class="w-full rounded-lg border-slate-200 bg-slate-50 p-3 text-slate-900 focus:border-primary-500 focus:ring-primary-500 shadow-sm resize-y outline-none transition-all placeholder:text-slate-400"
+                                class="w-full rounded-lg border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-slate-900 dark:text-white focus:border-primary-500 focus:ring-primary-500 shadow-sm resize-y outline-none transition-all placeholder:text-slate-400 dark:placeholder-slate-500"
                                 placeholder="Descreva detalhadamente o que foi feito (peças trocadas, serviços realizados)..."
                                 required
                             ></textarea>
@@ -181,7 +181,7 @@ const close = () => {
                     </div>
                 </div>
 
-                <div class="pt-4 border-t border-slate-100 flex justify-end gap-3 sticky bottom-0 bg-white pb-2">
+                <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 sticky bottom-0 bg-white dark:bg-slate-900 pb-2">
                     <BaseButton type="button" variant="outline" @click="close">
                         Cancelar
                     </BaseButton>

@@ -16,7 +16,7 @@ const props = defineProps<{
   currentUserId: string
 }>()
 
-const emit = defineEmits(['sendMessage', 'deleteConversation', 'clearConversation'])
+const emit = defineEmits(['sendMessage', 'deleteConversation', 'clearConversation', 'retryMessage'])
 const messageInput = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
 const showEmojiPicker = ref(false)
@@ -191,9 +191,12 @@ const getAvatarUrl = (name: string) => {
                <div v-if="msg.status === 'sending'" class="animate-pulse" title="Enviando...">
                   <ClockIcon class="w-3 h-3 text-slate-400" />
                </div>
-               <div v-else-if="msg.status === 'failed'" title="Falha no envio">
+               <button v-else-if="msg.status === 'failed'" 
+                       @click="emit('retryMessage', msg.id)"
+                       class="flex items-center gap-1 hover:bg-red-50 dark:hover:bg-red-900/30 p-1 rounded transition-colors"
+                       title="Falha no envio. Clique para tentar novamente">
                   <AlertCircleIcon class="w-3 h-3 text-red-500" />
-               </div>
+               </button>
                <div v-else title="Enviado">
                   <CheckCheckIcon class="w-3 h-3 text-primary" />
                </div>

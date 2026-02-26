@@ -69,7 +69,7 @@ const handlePageChange = (page: number) => {
 </script>
 
 <template>
-  <div class="flex h-screen bg-slate-50 overflow-hidden font-sans">
+  <div class="flex h-screen bg-slate-50 dark:bg-slate-900 transition-colors overflow-hidden font-sans">
     <!-- Module Sidebar -->
     <FleetSidebar :stats="stats" />
 

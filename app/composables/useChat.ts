@@ -10,10 +10,10 @@ export const useChat = () => {
   const messages = ref<Message[]>([])
   const loading = ref(false)
   const socket = ref<any>(null) // Tipo any temporário para evitar erro de tipo sem import
-  
+
   onMounted(() => {
     if (import.meta.client) {
-        initSocket()
+      initSocket()
     }
   })
 
@@ -21,87 +21,111 @@ export const useChat = () => {
   // Inicializar Socket.io
   const initSocket = async () => {
     if (socket.value) return
-    
+
     if (!import.meta.client) return
 
     try {
-        // Importação dinâmica para evitar erro no SSR
-        const { io } = await import('socket.io-client')
-        
-        // Conectar ao servidor WhatsApp (Porta 3001)
-        const runtimeConfig = useRuntimeConfig()
-        const socketUrl = runtimeConfig.public.whatsappApiUrl || 'http://localhost:3001'
-        
-        console.log('[useChat] Conectando ao Socket.io em:', socketUrl)
-        
-        const socketInstance = io(socketUrl, {
-          transports: ['websocket', 'polling'], // Fallback para polling se websocket falhar
-          reconnection: true,
-          reconnectionAttempts: 5,
-          reconnectionDelay: 1000
-        })
-        
-        socket.value = socketInstance
-    
-        socketInstance.on('connect', () => {
-          console.log('[useChat] Socket.io conectado com sucesso! ID:', socketInstance.id)
-        })
-        
-        socketInstance.on('connect_error', (err: any) => {
-          console.error('[useChat] Erro de conexão Socket.io:', err.message)
-        })
-    
-        socketInstance.on('new_message', (data: any) => {
-          console.log('[useChat] Nova mensagem recebida:', data)
-          
-          // Se tiver activeConversation, verifica se é pra ela
-          if (activeConversation.value) {
-              const currentPhone = activeConversation.value.contact_phone.replace(/[^0-9]/g, '')
-              const incomingPhone = (data.phone || '').replace(/[^0-9]/g, '')
-              
-              if (currentPhone && incomingPhone && currentPhone === incomingPhone) {
-                  const newMessage: Message = {
-                      id: data.id || 'socket_' + Date.now(),
-                      conversation_id: activeConversation.value.id,
-                      content: data.content,
-                      sender: data.sender || 'contact', // 'contact' ou 'agent'
-                      type: data.type || 'text',
-                      created_at: data.timestamp || new Date().toISOString(),
-                      status: 'delivered',
-                      media_url: data.mediaUrl || null
-                  }
-                  
-                  // Evita duplicidade simples (pelo ID ou conteúdo recente)
-                  const exists = messages.value.some(m => m.id === newMessage.id)
-                  if (!exists) {
-                      messages.value.push(newMessage)
-                      // Scroll to bottom (idealmente via evento ou ref no componente)
-                  }
-              }
+      // Importação dinâmica para evitar erro no SSR
+      const { io } = await import('socket.io-client')
+
+      // Conectar ao servidor WhatsApp (Porta 3001)
+      const runtimeConfig = useRuntimeConfig()
+      const socketUrl = runtimeConfig.public.whatsappApiUrl || 'http://localhost:3001'
+
+      console.log('[useChat] Conectando ao Socket.io em:', socketUrl)
+
+      const socketInstance = io(socketUrl, {
+        transports: ['websocket', 'polling'], // Fallback para polling se websocket falhar
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000
+      })
+
+      socket.value = socketInstance
+
+      socketInstance.on('connect', () => {
+        console.log('[useChat] Socket.io conectado com sucesso! ID:', socketInstance.id)
+      })
+
+      socketInstance.on('connect_error', (err: any) => {
+        console.error('[useChat] Erro de conexão Socket.io:', err.message)
+      })
+
+      socketInstance.on('new_message', (data: any) => {
+        console.log('[useChat] Nova mensagem recebida:', data)
+
+        // Se tiver activeConversation, verifica se é pra ela
+        if (activeConversation.value) {
+          const currentPhone = activeConversation.value.contact_phone.replace(/[^0-9]/g, '')
+          const incomingPhone = (data.phone || '').replace(/[^0-9]/g, '')
+
+          if (currentPhone && incomingPhone && currentPhone === incomingPhone) {
+            const newMessage: Message = {
+              id: data.id || 'socket_' + Date.now(),
+              conversation_id: activeConversation.value.id,
+              content: data.content,
+              sender: data.sender || 'contact', // 'contact' ou 'agent'
+              type: data.type || 'text',
+              created_at: data.timestamp || new Date().toISOString(),
+              status: 'delivered',
+              media_url: data.mediaUrl || null
+            }
+
+            // Evita duplicidade simples (pelo ID ou conteúdo recente)
+            const exists = messages.value.some(m => m.id === newMessage.id)
+            if (!exists) {
+              messages.value.push(newMessage)
+              // Scroll to bottom (idealmente via evento ou ref no componente)
+            }
           }
-          
-          // Atualiza a lista de conversas (move pro topo ou atualiza preview)
-          // Se não estiver na lista, recarrega tudo (simples)
-          // Se estiver, move
-          // TODO: Melhorar performance aqui
-          loadConversations() 
-        })
-        
+        }
+
+        // Atualiza a lista de conversas (move pro topo ou atualiza preview)
+        // Se não estiver na lista, recarrega tudo (simples)
+        // Se estiver, move
+        // TODO: Melhorar performance aqui
+        loadConversations()
+      })
+
+      socketInstance.on('bot_transferiu', (data: any) => {
+        console.log('[useChat] Atenção: Bot transferiu atendimento para humano!', data)
+
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+          if (Notification.permission === 'granted') {
+            new Notification('Atendimento Transferido (IA)', {
+              body: `O bot solicitou ajuda humana.\nMotivo: ${data.motivo || 'N/A'}\nContato: ${data.telefone || ''}`
+            });
+          } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then(permission => {
+              if (permission === 'granted') {
+                new Notification('Atendimento Transferido (IA)', { body: 'O bot solicitou ajuda humana.' })
+              }
+            });
+          }
+        } else {
+          alert(`⚠️ ATENÇÃO: Bot transferiu um atendimento!\nTelefone: ${data.telefone}\nMotivo: ${data.motivo}`);
+        }
+
+        loadConversations();
+      })
+
     } catch (e) {
-        console.error('[useChat] Falha crítica ao inicializar socket:', e)
+      console.error('[useChat] Falha crítica ao inicializar socket:', e)
     }
   }
 
   // Helper para reordenar lista localmente
   const updateConversationListOrder = (id: string, lastMessage: string, timestamp: string) => {
-      const index = conversations.value.findIndex(c => c.id === id)
-      if (index !== -1) {
-          const conv = conversations.value[index]
-          conv.last_message = lastMessage
-          conv.last_message_at = timestamp
-          conversations.value.splice(index, 1)
-          conversations.value.unshift(conv)
+    const index = conversations.value.findIndex(c => c.id === id)
+    if (index !== -1) {
+      const conv = conversations.value[index]
+      if (conv) {
+        conv.last_message = lastMessage
+        conv.last_message_at = timestamp
+        conversations.value.splice(index, 1)
+        conversations.value.unshift(conv)
       }
+    }
   }
 
   // Carrega lista de conversas
@@ -121,7 +145,7 @@ export const useChat = () => {
       if (activeConversation.value) {
         const updated = conversations.value.find(c => c.id === activeConversation.value?.id)
         if (updated) {
-          activeConversation.value = updated
+          activeConversation.value = updated as Conversation
         }
       }
     }
@@ -152,75 +176,77 @@ export const useChat = () => {
     // 1. Atualização Otimista da UI
     const tempId = 'temp_' + Date.now()
     const optimisticMessage: Message = {
-        id: tempId,
-        conversation_id: activeConversation.value.id,
-        sender: 'agent',
-        content: text,
-        type: type,
-        created_at: new Date().toISOString(),
-        status: 'sending'
+      id: tempId,
+      conversation_id: activeConversation.value.id,
+      sender: 'agent',
+      content: text,
+      type: type,
+      created_at: new Date().toISOString(),
+      status: 'sending'
     }
     messages.value.push(optimisticMessage)
 
     try {
-        // 2. Tentar enviar via API Direta (mais confiável que Socket para envio)
-        const runtimeConfig = useRuntimeConfig()
-        const apiUrl = runtimeConfig.public.whatsappApiUrl || 'http://localhost:3001'
-        
-        // Primeiro salvamos no banco com status 'sent' (para garantir persistência)
-        const { data: savedMsg, error: saveError } = await supabase
-          .from('messages')
-          .insert({
-            conversation_id: activeConversation.value.id,
-            sender: 'agent',
-            content: text,
-            type: type,
-            status: 'sent'
-          })
-          .select()
-          .single()
+      // 2. Tentar enviar via API Direta (mais confiável que Socket para envio)
+      const runtimeConfig = useRuntimeConfig()
+      const apiUrl = runtimeConfig.public.whatsappApiUrl || 'http://localhost:3001'
 
-        if (saveError || !savedMsg) {
-            console.error('Erro ao salvar mensagem no banco:', saveError)
-            // Atualizar otimista para erro
-            const msgIndex = messages.value.findIndex(m => m.id === tempId)
-            if (msgIndex !== -1) messages.value[msgIndex].status = 'failed'
-            return
-        }
-
-        // Substituir ID temporário pelo real
-        const msgIndex = messages.value.findIndex(m => m.id === tempId)
-        if (msgIndex !== -1) {
-            messages.value[msgIndex] = savedMsg as any
-            messages.value[msgIndex].status = 'sending' // Mantém sending enquanto chama API
-        }
-
-        // 3. Chamar API de envio
-        const response = await fetch(`${apiUrl}/send-message`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                phone: activeConversation.value.contact_phone,
-                message: text
-            })
+      // Primeiro salvamos no banco com status 'sent' (para garantir persistência)
+      const { data: savedMsg, error: saveError } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: activeConversation.value.id,
+          sender: 'agent',
+          content: text,
+          type: type,
+          status: 'sent'
         })
+        .select()
+        .single()
 
-        if (response.ok) {
-            // Sucesso! Atualizar status no banco e localmente
-            await supabase.from('messages').update({ status: 'delivered' }).eq('id', savedMsg.id)
-            
-            const finalIndex = messages.value.findIndex(m => m.id === savedMsg.id)
-            if (finalIndex !== -1) messages.value[finalIndex].status = 'delivered'
-        } else {
-            console.error('Erro na API de envio:', response.statusText)
-            // Deixar como 'sent' para que o Polling do servidor tente enviar depois
-            // O Listener do servidor também deve pegar se estiver ativo
-        }
+      if (saveError || !savedMsg) {
+        console.error('Erro ao salvar mensagem no banco:', saveError)
+        // Atualizar otimista para erro
+        const msgIndex = messages.value.findIndex(m => m.id === tempId)
+        if (msgIndex !== -1 && messages.value[msgIndex]) messages.value[msgIndex].status = 'failed'
+        return
+      }
+
+      // Substituir ID temporário pelo real
+      const msgIndex2 = messages.value.findIndex(m => m.id === tempId)
+      if (msgIndex2 !== -1 && messages.value[msgIndex2]) {
+        messages.value[msgIndex2] = savedMsg as any
+        if (messages.value[msgIndex2]) messages.value[msgIndex2].status = 'sending'
+      }
+
+      // 3. Chamar API de envio
+      const response = await fetch(`${apiUrl}/send-message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: activeConversation.value.contact_phone,
+          message: text,
+          conversationId: activeConversation.value.id
+        })
+      })
+
+      if (response.ok) {
+        // Sucesso! Atualizar status no banco e localmente
+        await supabase.from('messages').update({ status: 'delivered' }).eq('id', savedMsg.id)
+
+        const finalIndex = messages.value.findIndex(m => m.id === savedMsg.id)
+        if (finalIndex !== -1 && messages.value[finalIndex]) messages.value[finalIndex].status = 'delivered'
+      } else {
+        console.error('Erro na API de envio:', response.statusText)
+        // Atualização falhou, atualiza apenas o estado local pois o Supabase não aceita ENUM 'failed'
+        const finalIndexFailed = messages.value.findIndex(m => m.id === savedMsg.id)
+        if (finalIndexFailed !== -1 && messages.value[finalIndexFailed]) messages.value[finalIndexFailed].status = 'failed'
+      }
 
     } catch (e) {
-        console.error('Exceção ao enviar mensagem:', e)
-        const msgIndex = messages.value.findIndex(m => m.id === tempId)
-        if (msgIndex !== -1) messages.value[msgIndex].status = 'failed'
+      console.error('Exceção ao enviar mensagem:', e)
+      const msgIndexErr = messages.value.findIndex(m => m.id === tempId)
+      if (msgIndexErr !== -1 && messages.value[msgIndexErr]) messages.value[msgIndexErr].status = 'failed'
     }
   }
 
@@ -245,6 +271,19 @@ export const useChat = () => {
             }
           }
           // Se não for da ativa, incrementar contador? (Fica para depois)
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages' },
+        (payload) => {
+          const updatedMessage = payload.new as Message
+          if (activeConversation.value && updatedMessage.conversation_id === activeConversation.value.id) {
+            const index = messages.value.findIndex(m => m.id === updatedMessage.id)
+            if (index !== -1) {
+              messages.value[index] = updatedMessage
+            }
+          }
         }
       )
       .subscribe((status) => {
@@ -424,6 +463,51 @@ export const useChat = () => {
     }
   }
 
+  // Reenvia mensagem
+  async function retryMessage(messageId: string) {
+    if (!activeConversation.value) return
+
+    const msgIndex = messages.value.findIndex(m => m.id === messageId)
+    if (msgIndex === -1) return
+    const msg = messages.value[msgIndex]
+    if (!msg || msg.status !== 'failed') return
+
+    // 1. Atualizar UI otimista
+    if (messages.value[msgIndex]) messages.value[msgIndex].status = 'sending'
+
+    try {
+      const runtimeConfig = useRuntimeConfig()
+      const apiUrl = runtimeConfig.public.whatsappApiUrl || 'http://localhost:3001'
+
+      // Atualiza banco para sent
+      await supabase.from('messages').update({ status: 'sent' }).eq('id', messageId)
+
+      // Tentar enviar via API Direta
+      const response = await fetch(`${apiUrl}/send-message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: activeConversation.value.contact_phone,
+          message: msg.content
+        })
+      })
+
+      if (response.ok) {
+        await supabase.from('messages').update({ status: 'delivered' }).eq('id', messageId)
+        const finalIndex = messages.value.findIndex(m => m.id === messageId)
+        if (finalIndex !== -1 && messages.value[finalIndex]) messages.value[finalIndex].status = 'delivered'
+      } else {
+        console.error('Erro na API de reenvio:', response.statusText)
+        const finalIndexFailed = messages.value.findIndex(m => m.id === messageId)
+        if (finalIndexFailed !== -1 && messages.value[finalIndexFailed]) messages.value[finalIndexFailed].status = 'failed'
+      }
+    } catch (e) {
+      console.error('Exceção ao reenviar mensagem:', e)
+      const finalIndexErr = messages.value.findIndex(m => m.id === messageId)
+      if (finalIndexErr !== -1 && messages.value[finalIndexErr]) messages.value[finalIndexErr].status = 'failed'
+    }
+  }
+
   return {
     conversations,
     activeConversation,
@@ -432,6 +516,7 @@ export const useChat = () => {
     loadConversations,
     loadMessages,
     sendMessage,
+    retryMessage,
     subscribeToMessages,
     deleteConversation,
     clearConversation

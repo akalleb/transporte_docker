@@ -17,7 +17,8 @@ export interface Message {
   conversation_id: string
   sender: 'agent' | 'contact' | 'system'
   content: string
-  type: 'text' | 'image' | 'audio' | 'file'
-  status: 'sent' | 'delivered' | 'read'
+  type: 'text' | 'image' | 'audio' | 'file' | 'document'
+  status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed'
   created_at: string
+  media_url?: string | null
 }

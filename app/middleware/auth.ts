@@ -1,12 +1,17 @@
-export default defineNuxtRouteMiddleware((to, from) => {
+export default defineNuxtRouteMiddleware(async (to, from) => {
   const user = useSupabaseUser()
-  
+  const supabase = useSupabaseClient()
+
   // Debug
   if (import.meta.client) {
-      console.log('Middleware Auth:', to.path, 'User:', !!user.value)
+    console.log('Middleware Auth:', to.path, 'User:', !!user.value)
   }
 
   if (!user.value) {
-    return navigateTo('/login')
+    // Tenta pegar a sessão ativamente do storage se o reativo demorar 1 tick
+    const { data } = await supabase.auth.getSession()
+    if (!data.session) {
+      return navigateTo('/login')
+    }
   }
 })

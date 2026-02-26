@@ -85,57 +85,57 @@ const close = () => {
         @click="close"
       >
         <div 
-            class="bg-white w-full max-w-md h-full shadow-2xl overflow-y-auto flex flex-col"
+            class="bg-white dark:bg-slate-900 w-full max-w-md h-full shadow-2xl overflow-y-auto flex flex-col transition-colors"
             @click.stop
         >
-            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 sticky top-0 z-10">
-                <h2 class="text-lg font-bold text-slate-900">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 sticky top-0 z-10 text-slate-900 dark:text-white">
+                <h2 class="text-lg font-bold">
                     {{ isEdit ? 'Editar Veículo' : 'Novo Veículo' }}
                 </h2>
-                <button @click="close" class="p-2 hover:bg-slate-200 rounded-full text-slate-500">
+                <button @click="close" class="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-500 dark:text-slate-400">
                     <XIcon class="w-5 h-5" />
                 </button>
             </div>
 
             <form @submit.prevent="save" class="p-6 space-y-6 flex-1">
                 <div class="space-y-4">
-                    <h3 class="text-sm font-bold uppercase text-slate-500 tracking-wider border-b pb-2">Identificação</h3>
+                    <h3 class="text-sm font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider border-b dark:border-slate-800 pb-2">Identificação</h3>
                     
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Nome/Apelido *</label>
-                        <input v-model="form.name" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: Ambulância 01" />
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nome/Apelido *</label>
+                        <input v-model="form.name" required class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 outline-none placeholder-slate-400 dark:placeholder-slate-500" placeholder="Ex: Ambulância 01" />
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Placa *</label>
-                            <input v-model="form.plate" required class="w-full px-3 py-2 border rounded-lg uppercase font-mono" placeholder="ABC-1234" />
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Placa *</label>
+                            <input v-model="form.plate" required class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg uppercase font-mono placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-primary-500" placeholder="ABC-1234" />
                         </div>
                          <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Ano</label>
-                            <input v-model="form.year" type="number" class="w-full px-3 py-2 border rounded-lg" />
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Ano</label>
+                            <input v-model="form.year" type="number" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Marca</label>
-                            <input v-model="form.brand" class="w-full px-3 py-2 border rounded-lg" placeholder="Fiat" />
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Marca</label>
+                            <input v-model="form.brand" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-primary-500" placeholder="Fiat" />
                         </div>
                          <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Modelo</label>
-                            <input v-model="form.model" class="w-full px-3 py-2 border rounded-lg" placeholder="Ducato" />
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Modelo</label>
+                            <input v-model="form.model" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-primary-500" placeholder="Ducato" />
                         </div>
                     </div>
                 </div>
 
                 <div class="space-y-4">
-                    <h3 class="text-sm font-bold uppercase text-slate-500 tracking-wider border-b pb-2">Detalhes Operacionais</h3>
+                    <h3 class="text-sm font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider border-b dark:border-slate-800 pb-2">Detalhes Operacionais</h3>
                     
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
-                            <select v-model="form.type" class="w-full px-3 py-2 border rounded-lg bg-white">
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tipo</label>
+                            <select v-model="form.type" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-500">
                                 <option>Carro</option>
                                 <option>Moto</option>
                                 <option>Van</option>
@@ -144,8 +144,8 @@ const close = () => {
                             </select>
                         </div>
                          <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                            <select v-model="form.status" class="w-full px-3 py-2 border rounded-lg bg-white">
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Status</label>
+                            <select v-model="form.status" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-500">
                                 <option value="available">Disponível</option>
                                 <option value="out">Em Uso</option>
                                 <option value="maintenance">Manutenção</option>
@@ -155,23 +155,23 @@ const close = () => {
 
                     <div class="grid grid-cols-2 gap-4">
                          <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Odômetro (km)</label>
-                            <input v-model="form.odometer" type="number" class="w-full px-3 py-2 border rounded-lg" />
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Odômetro (km)</label>
+                            <input v-model="form.odometer" type="number" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Combustível (%)</label>
-                            <input v-model="form.fuel_level" type="number" min="0" max="100" class="w-full px-3 py-2 border rounded-lg" />
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Combustível (%)</label>
+                            <input v-model="form.fuel_level" type="number" min="0" max="100" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
                         </div>
                     </div>
                     
                      <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Consumo Médio (km/l)</label>
-                        <input v-model="form.fuel_efficiency" type="number" step="0.1" class="w-full px-3 py-2 border rounded-lg" />
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Consumo Médio (km/l)</label>
+                        <input v-model="form.fuel_efficiency" type="number" step="0.1" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
                     </div>
                 </div>
             </form>
 
-            <div class="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 sticky bottom-0">
+            <div class="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-3 sticky bottom-0">
                 <BaseButton variant="secondary" @click="close">Cancelar</BaseButton>
                 <BaseButton @click="save" :disabled="!form.name || !form.plate" class="flex items-center gap-2">
                     <SaveIcon class="w-4 h-4" />
