@@ -319,10 +319,18 @@ Formato exato esperado:
 {
   "message": "pergunta a ser feita ao usuário (sua resposta como Clara)",
   "extracted": {
-    "patient_name": "...",
-    "patient_phone": "...",
-    "procedure_type": "Consulta ou Exame",
-    "location": "..."
+    "patient_name": "Nome do Paciente",
+    "patient_phone": "Telefone com DDD",
+    "procedure_type": "Consulta | Exame",
+    "procedure_name": "Especialidade ou Nome do Exame",
+    "procedure_date": "YYYY-MM-DD",
+    "procedure_time": "HH:MM",
+    "location": "Nome da Clínica/Hospital",
+    "city": "Angicos",
+    "boarding_neighborhood": "Bairro de Embarque",
+    "boarding_point": "Ponto de Referência exato",
+    "needs_companion": false,
+    "companion_reason": "Motivo se precisar acompanhante"
   },
   "all_collected": false
 }

@@ -113,10 +113,14 @@ watch(() => props.activeConversation, (newVal: Conversation | null, oldVal: Conv
 })
 
 let realtimeChannel: any = null
+let convChannel: any = null
 
 const subscribeToRegistrationUpdates = () => {
   if (realtimeChannel) {
     supabase.removeChannel(realtimeChannel)
+  }
+  if (convChannel) {
+    supabase.removeChannel(convChannel)
   }
 
   if (!props.activeConversation) return
@@ -138,6 +142,29 @@ const subscribeToRegistrationUpdates = () => {
            originalFormData.value = { ...payload.new }
            registrationStatus.value = payload.new.status
         }
+      }
+    })
+    .subscribe()
+
+  convChannel = supabase
+    .channel(`public:conversations:${props.activeConversation.id}`)
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'conversations',
+      filter: `id=eq.${props.activeConversation.id}`
+    }, (payload: any) => {
+      // Se não há registration finalizada ainda preenche dinamicamente pelo json
+      if (!registrationId.value && payload.new && payload.new.flow_data && !hasChanges.value) {
+        const flowData = typeof payload.new.flow_data === 'string'
+          ? JSON.parse(payload.new.flow_data)
+          : payload.new.flow_data
+
+        Object.assign(formData.value, flowData)
+        // Set explicitly to avoid type mismatches
+        formData.value.needs_companion = !!flowData.needs_companion
+        
+        originalFormData.value = JSON.parse(JSON.stringify(formData.value))
       }
     })
     .subscribe()
@@ -200,22 +227,35 @@ const initializeForm = async () => {
       registrationStatus.value = loadedData.status || 'draft'
       originalFormData.value = JSON.parse(JSON.stringify(formData.value))
     } else {
-      // Resetar form se não existir
+      // Tentar buscar flow_data inacabado em conversations
+      const { data: convData } = await supabase
+        .from('conversations')
+        .select('flow_data')
+        .eq('id', props.activeConversation.id)
+        .maybeSingle()
+
+      let partialData: any = {}
+      if (convData && convData.flow_data) {
+        partialData = typeof convData.flow_data === 'string' 
+          ? JSON.parse(convData.flow_data) 
+          : convData.flow_data
+      }
+
       registrationId.value = null
       formData.value = {
-        patient_name: '',
-        patient_phone: '',
-        procedure_date: '',
-        procedure_time: '',
-        procedure_type: 'Consulta',
-        procedure_name: '',
-        location: '',
-        city: '',
-        boarding_neighborhood: '',
-        boarding_point: '',
-        needs_companion: false,
-        companion_reason: '',
-        attachment_url: ''
+        patient_name: partialData.patient_name || '',
+        patient_phone: partialData.patient_phone || '',
+        procedure_date: partialData.procedure_date || '',
+        procedure_time: partialData.procedure_time || '',
+        procedure_type: partialData.procedure_type || 'Consulta',
+        procedure_name: partialData.procedure_name || '',
+        location: partialData.location || '',
+        city: partialData.city || '',
+        boarding_neighborhood: partialData.boarding_neighborhood || '',
+        boarding_point: partialData.boarding_point || '',
+        needs_companion: !!partialData.needs_companion,
+        companion_reason: partialData.companion_reason || '',
+        attachment_url: partialData.attachment_url || ''
       }
       registrationStatus.value = 'draft'
       originalFormData.value = JSON.parse(JSON.stringify(formData.value))
