@@ -32,6 +32,7 @@ import {
 import BaseModal from '~/components/ui/BaseModal.vue'
 import SuccessModal from '~/components/ui/SuccessModal.vue'
 import ErrorModal from '~/components/ui/ErrorModal.vue'
+import ConfirmModal from '~/components/ui/ConfirmModal.vue'
 import BaseInput from '~/components/BaseInput.vue'
 import BaseButton from '~/components/BaseButton.vue'
 
@@ -417,7 +418,8 @@ const settings = ref({
   ai_persona: 'Assistente prestativo e profissional',
   ai_creativity: 0.7,
   ai_supervision_level: 'medium',
-  ai_instructions: 'Seja conciso e foque em agendar o transporte.'
+  ai_instructions: 'Seja conciso e foque em agendar o transporte.',
+  ai_knowledge_base: ''
 })
 const loadingSettings = ref(false)
 
@@ -901,7 +903,7 @@ onUnmounted(() => {
                   <div class="space-y-2">
                     <label class="text-sm font-bold uppercase text-slate-400">Conteúdo (Markdown)</label>
                     <textarea 
-                      v-model="ragMarkdown"
+                      v-model="settings.ai_knowledge_base"
                       rows="14"
                       class="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-4 px-4 text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm transition-colors outline-none resize-y font-mono shadow-sm"
                       placeholder="## Título do Tópico&#10;Conteúdo explicativo aqui..."
@@ -926,8 +928,8 @@ onUnmounted(() => {
                   </div>
                   
                   <div class="pt-4">
-                    <BaseButton @click="saveRagContent" :disabled="isSavingRag" class="w-full justify-center">
-                      <span v-if="isSavingRag">Processando...</span>
+                    <BaseButton @click="saveSettings" :disabled="loadingSettings" class="w-full justify-center">
+                      <span v-if="loadingSettings">Processando...</span>
                       <span v-else class="flex items-center gap-2"><SaveIcon class="w-5 h-5" /> Salvar na Base</span>
                     </BaseButton>
                   </div>
@@ -1345,11 +1347,10 @@ onUnmounted(() => {
     <ConfirmModal 
       :show="confirmModal.show" 
       :title="confirmModal.title" 
-      :message="confirmModal.message"
-      :type="confirmModal.type"
+      :description="confirmModal.message"
       :confirm-text="confirmModal.confirmText"
       @confirm="handleConfirmAction"
-      @cancel="confirmModal.show = false"
+      @close="confirmModal.show = false"
     />
 
     <SuccessModal 

@@ -223,7 +223,7 @@ async function connectToWhatsApp() {
 
           if (conversa?.is_bot_active) {
             console.log(`Processando IA para ${phone}...`);
-            const { texto, transferido, motivo } = await processarMensagemComIA(phone, text, null, sock);
+            const { texto, transferido, motivo } = await processarMensagemComIA(phone, text, publicUrl, sock);
 
             if (texto) {
               await sock.sendMessage(remoteJid, { text: texto });

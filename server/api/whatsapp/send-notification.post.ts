@@ -36,9 +36,9 @@ export default defineEventHandler(async (event) => {
   const dateStr = dateParts ? `${dateParts[2]}/${dateParts[1]}` : ''
   const timeStr = registration.procedure_time?.substring(0, 5) || ''
   const name = registration.patient_name?.split(' ')[0] || ''
-  
+
   let messageText = ''
-  
+
   if (status === 'approved') {
     messageText = `✅ *Agendamento Confirmado!*\n\nOlá ${name}, seu transporte para o dia *${dateStr}* às *${timeStr}* foi confirmado.\n\n📍 Esteja no ponto de embarque com antecedência.\nBom procedimento!`
   } else if (status === 'rejected') {
@@ -51,40 +51,41 @@ export default defineEventHandler(async (event) => {
   let sentDirectly = false
   const WHATSAPP_SERVER_URL = process.env.WHATSAPP_SERVER_URL || 'http://localhost:3001'
   const MAX_RETRIES = 3
-  
+
   try {
     const contactPhone = registration.conversations?.contact_phone
     const contactJid = registration.conversations?.contact_jid
     const targetPhone = contactJid || contactPhone
 
     if (targetPhone) {
-        console.log(`[Notification] Tentando enviar mensagem para ${targetPhone} via ${WHATSAPP_SERVER_URL}...`)
-        
-        for (let i = 0; i < MAX_RETRIES; i++) {
-            try {
-                const response = await fetch(`${WHATSAPP_SERVER_URL}/send-message`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        phone: targetPhone,
-                        message: messageText
-                    }),
-                    signal: AbortSignal.timeout(5000) // Timeout de 5s por tentativa
-                })
-                
-                if (response.ok) {
-                    sentDirectly = true
-                    console.log('[Notification] Mensagem enviada via API direta com sucesso.')
-                    break // Sucesso, sai do loop
-                } else {
-                    console.warn(`[Notification] Falha ao enviar via API direta (Tentativa ${i+1}/${MAX_RETRIES}): ${response.status} ${response.statusText}`)
-                }
-            } catch (fetchErr) {
-                 console.warn(`[Notification] Erro de conexão (Tentativa ${i+1}/${MAX_RETRIES}):`, fetchErr.message)
-                 // Se não for a última tentativa, espera um pouco (backoff simples)
-                 if (i < MAX_RETRIES - 1) await new Promise(r => setTimeout(r, 1000 * (i + 1)))
-            }
+      console.log(`[Notification] Tentando enviar mensagem para ${targetPhone} via ${WHATSAPP_SERVER_URL}...`)
+
+      for (let i = 0; i < MAX_RETRIES; i++) {
+        try {
+          const response = await fetch(`${WHATSAPP_SERVER_URL}/send-message`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone: targetPhone,
+              message: messageText,
+              conversationId: registration.conversation_id
+            }),
+            signal: AbortSignal.timeout(5000) // Timeout de 5s por tentativa
+          })
+
+          if (response.ok) {
+            sentDirectly = true
+            console.log('[Notification] Mensagem enviada via API direta com sucesso.')
+            break // Sucesso, sai do loop
+          } else {
+            console.warn(`[Notification] Falha ao enviar via API direta (Tentativa ${i + 1}/${MAX_RETRIES}): ${response.status} ${response.statusText}`)
+          }
+        } catch (fetchErr) {
+          console.warn(`[Notification] Erro de conexão (Tentativa ${i + 1}/${MAX_RETRIES}):`, (fetchErr as Error).message)
+          // Se não for a última tentativa, espera um pouco (backoff simples)
+          if (i < MAX_RETRIES - 1) await new Promise(r => setTimeout(r, 1000 * (i + 1)))
         }
+      }
     }
   } catch (e) {
     console.warn('[Notification] Erro fatal ao conectar com WhatsApp Server:', e)
@@ -106,13 +107,13 @@ export default defineEventHandler(async (event) => {
   if (msgError) {
     console.error('Erro ao salvar mensagem no histórico:', msgError)
     throw createError({
-        statusCode: 500,
-        statusMessage: 'Failed to save message history'
+      statusCode: 500,
+      statusMessage: 'Failed to save message history'
     })
   }
 
-  return { 
-    success: true, 
-    method: sentDirectly ? 'direct_api' : 'database_queue' 
+  return {
+    success: true,
+    method: sentDirectly ? 'direct_api' : 'database_queue'
   }
 })

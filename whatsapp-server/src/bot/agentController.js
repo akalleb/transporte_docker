@@ -245,14 +245,22 @@ export async function processarMensagemComIA(telefone, mensagem, mediaUrl = null
     if (conversation.contact_jid) targetJid = conversation.contact_jid;
   }
 
-  // 2. Buscar histórico
-
-  const { data: historico } = await supabase
-    .from("messages")
-    .select("sender, content")
-    .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: false })
-    .limit(20);
+  // 2. Buscar histórico e Configurações (RAG)
+  const [{ data: historico }, { data: adminSettings }, { data: boardingData }] = await Promise.all([
+    supabase
+      .from("messages")
+      .select("sender, content")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("admin_settings")
+      .select("settings")
+      .single(),
+    supabase
+      .from("boarding_locations")
+      .select("neighborhood, point_name")
+  ]);
 
   const mensagensOrdenadas = (historico || [])
     .reverse()
@@ -297,7 +305,22 @@ export async function processarMensagemComIA(telefone, mensagem, mediaUrl = null
 
 
 
-  const missingFieldsMsg = "Identifique quais campos do JSON ainda estão nulos ou inexistentes e pergunte UM DELES por vez.";
+  const missingFieldsMsg = "Analise os DADOS JÁ COLETADOS. Se algum campo do formato JSON abaixo estiver nulo ou vazio, pergunte explicitamente ao paciente. NÂO encerre a coleta até ter TODOS os campos.";
+
+  const ragContext = adminSettings?.settings?.ai_knowledge_base || "Sem base de conhecimento adicional fornecida pelo admin.";
+
+  // Format boarding locations for prompt
+  const locationsMap = {};
+  if (boardingData) {
+    boardingData.forEach(loc => {
+      if (!locationsMap[loc.neighborhood]) locationsMap[loc.neighborhood] = [];
+      locationsMap[loc.neighborhood].push(loc.point_name);
+    });
+  }
+  let locationsString = Object.entries(locationsMap)
+    .map(([nHood, points]) => `- Bairro ${nHood}: ${points.join(', ')}`)
+    .join('\n');
+  if (!locationsString) locationsString = "Nenhum local cadastrado. Aceite o que o paciente disser.";
 
   const dynamicSystemPrompt = `
 Você é Clara, assistente virtual simpática da Secretaria Municipal de Saúde de Angicos-RN.
@@ -310,6 +333,13 @@ REGRAS:
 3. Linguagem simples (muitos usuários são idosos).
 4. CRÍTICO: Faça APENAS UMA pergunta por vez. Não liste múltiplos campos de uma vez. Primeiro colete o nome, depois o telefone, etc. Seja natural como um humano faria.
 5. Entenda linguagem natural: "quinta feira", "amanhã", "10h".
+6. LOCAIS DE EMBARQUE: Ao perguntar o bairro de embarque, OFEREÇA as seguintes opções de Bairros e seus Pontos de referência cadastrados:
+${locationsString}
+Obrigatório que o json extraia exatamente as palavras fornecidas pela lista em "boarding_neighborhood" e "boarding_point".
+7. PROIBIDO: NUNCA diga que o transporte "está agendado" ou escreva uma mensagem de encerramento final. Apenas diga "Aguarde um instante, estou processando..." quando achar que finalizou de coletar tudo.
+
+BASE DE CONHECIMENTO DISPONÍVEL (RAG):
+${ragContext}
 
 DADOS JÁ COLETADOS: ${JSON.stringify(flowData)}
 DADOS QUE FALTAM: ${missingFieldsMsg}
