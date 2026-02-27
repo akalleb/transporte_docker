@@ -7,7 +7,8 @@ export default defineEventHandler(async (event) => {
     ai_persona: 'Assistente prestativo e profissional',
     ai_creativity: 0.7,
     ai_supervision_level: 'medium',
-    ai_instructions: 'Seja conciso e foque em agendar o transporte.'
+    ai_instructions: 'Seja conciso e foque em agendar o transporte.',
+    ai_knowledge_base: ''
   }
 
   try {
@@ -15,14 +16,14 @@ export default defineEventHandler(async (event) => {
     // Isso é crucial para não quebrar a tela de configurações se o DB estiver inacessível
     let client
     try {
-        const adminAuth = await requireAdmin(event)
-        client = adminAuth.client
+      const adminAuth = await requireAdmin(event)
+      client = adminAuth.client
     } catch (authErr: any) {
-        console.warn('Aviso: Falha na autenticação admin ao buscar settings. Retornando padrão.', authErr.message)
-        // Se for erro de auth (401/403), talvez devêssemos lançar, mas para "refazer conexão", vamos ser permissivos na leitura
-        // Se o usuário não for admin, o frontend vai redirecionar ou mostrar erro de outra forma
-        if (authErr.statusCode === 401 || authErr.statusCode === 403) throw authErr
-        return defaultSettings
+      console.warn('Aviso: Falha na autenticação admin ao buscar settings. Retornando padrão.', authErr.message)
+      // Se for erro de auth (401/403), talvez devêssemos lançar, mas para "refazer conexão", vamos ser permissivos na leitura
+      // Se o usuário não for admin, o frontend vai redirecionar ou mostrar erro de outra forma
+      if (authErr.statusCode === 401 || authErr.statusCode === 403) throw authErr
+      return defaultSettings
     }
 
     // Tentar buscar configurações no Supabase
@@ -36,12 +37,12 @@ export default defineEventHandler(async (event) => {
     }
 
     // Merge das configurações do banco com as padrão
-    const settings = { ...defaultSettings }
-    
+    const settings: Record<string, any> = { ...defaultSettings }
+
     if (data) {
       data.forEach(item => {
         if (settings[item.key] !== undefined) {
-            settings[item.key] = item.value
+          settings[item.key] = item.value
         }
       })
     }
@@ -50,10 +51,10 @@ export default defineEventHandler(async (event) => {
 
   } catch (err: any) {
     console.error('Erro CRÍTICO na API settings.get:', err)
-    
+
     // Se for erro de permissão, repassa
     if (err.statusCode === 401 || err.statusCode === 403) {
-        throw createError({ statusCode: err.statusCode, message: err.message })
+      throw createError({ statusCode: err.statusCode, message: err.message })
     }
 
     // Para outros erros (500), retorna default para não travar a UI

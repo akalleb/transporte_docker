@@ -91,27 +91,29 @@ const TOOLS = [
 
 
 
-// Função Helper solicitada pelo usuário para enviar mensagens no Controller
+// Função Helper para enviar mensagens no Controller garantindo JID
 async function saveAndSendMessage(supabase, sock, jid, conversationId, text) {
   if (sock && jid) {
     try {
       let formattedJid = String(jid);
-      if (!formattedJid.includes('@') && !formattedJid.includes('g.us')) {
+      // Se não tiver nenhum sufixo de servidor oficial, limpa e injeta
+      if (!formattedJid.includes('@s.whatsapp.net') && !formattedJid.includes('@g.us') && !formattedJid.includes('@lid')) {
         const digits = formattedJid.replace(/[^0-9]/g, '');
         formattedJid = `${digits}@s.whatsapp.net`;
       }
+      console.log(`[Agente] Respondendo para JID validado: ${formattedJid}`);
       await sock.sendMessage(formattedJid, { text });
     } catch (err) {
       console.error("Erro ao enviar via sock no agentController:", err);
     }
   }
-  // Recuperar organizationId
+  // Recuperar organizationId para o histórico visual do Painel Web
   const { data: conv } = await supabase.from('conversations').select('organization_id').eq('id', conversationId).single();
   await salvarMensagem(conversationId, conv?.organization_id, "agent", text);
   return { texto: null, transferido: false };
 }
 
-// Handler de Foto/Comprovante (BUG 4) ou Atualização
+// Handler de Fluxo e Registros a partir dos extraídos pela IA
 async function handleExtractedData(conversationId, telefone, updatedJSON, content, mediaUrl, sock) {
   const { data: conv } = await supabase.from('conversations').select('*').eq('id', conversationId).single();
   let flowData = {};
@@ -119,17 +121,24 @@ async function handleExtractedData(conversationId, telefone, updatedJSON, conten
     flowData = typeof conv.flow_data === "string" ? JSON.parse(conv.flow_data) : conv.flow_data;
   }
 
-  // Mesclar dados
-  const updatedData = { ...flowData, ...(updatedJSON.extracted || {}) };
+  // Preserve the attachment url in flow_data if we received it
+  let attachmentUrl = flowData.attachment_url;
+  if (mediaUrl) {
+    attachmentUrl = mediaUrl;
+  }
 
-  // Se está esperando anexo
-  if (flowData.attachment_requested) {
-    const isSkip = content.toLowerCase().includes('pular');
-    const attachmentUrl = isSkip ? null : (mediaUrl || null);
+  const updatedData = { ...flowData, ...(updatedJSON.extracted || {}), attachment_url: attachmentUrl };
 
-    const finalData = { ...flowData, attachment_url: attachmentUrl };
+  const status = updatedJSON.status_agendamento || 'em_andamento';
 
-    // Criar registro na tabela FINAL registrations
+  if (status === 'cancelado') {
+    await supabase.from('conversations').update({ flow_state: 'cancelled', is_bot_active: false, flow_data: updatedData }).eq('id', conversationId);
+    return await saveAndSendMessage(supabase, sock, telefone, conversationId, updatedJSON.message || "Entendido! O agendamento foi cancelado.");
+  }
+
+  if (status === 'confirmado') {
+    const finalData = updatedData;
+    // Criar registro na tabela
     const { data: reg, error } = await supabase
       .from('registrations')
       .insert({
@@ -155,52 +164,33 @@ async function handleExtractedData(conversationId, telefone, updatedJSON, conten
 
     if (error) {
       console.error('[AGENT] Erro ao criar registro:', error);
-      return await saveAndSendMessage(supabase, sock, telefone, conversationId, '❌ Erro ao salvar. Tente novamente ou ligue para a Secretaria.');
+      return await saveAndSendMessage(supabase, sock, telefone, conversationId, '❌ Erro ao salvar o registro no sistema. Tente novamente mais tarde.');
     }
 
     await supabase.from('conversations')
-      .update({ flow_state: 'completed', is_bot_active: false })
+      .update({ flow_state: 'completed', is_bot_active: false, flow_data: updatedData })
       .eq('id', conversationId);
 
-    const msgConfirmacao = `✅ *Pedido registrado com sucesso!*\n\n` +
-      `📋 *Resumo:*\n` +
-      `👤 ${finalData.patient_name}\n` +
-      `🏥 ${finalData.procedure_type}: ${finalData.procedure_name || 'N/A'}\n` +
-      `📅 ${finalData.procedure_date} às ${finalData.procedure_time || 'N/A'}\n` +
-      `📍 ${finalData.location}\n` +
-      `🚌 ${finalData.boarding_point}, ${finalData.boarding_neighborhood}\n\n` +
-      `⏳ A Secretaria irá confirmar em breve. Obrigada! 😊`;
+    let dataFormatada = finalData.procedure_date || '[Data]';
+    if (dataFormatada.includes('-')) {
+      dataFormatada = dataFormatada.split('-').reverse().join('/');
+    }
+    const pushMsg = `✅ Agendamento Confirmado! Olá ${finalData.patient_name}, seu transporte para o dia ${dataFormatada} às ${finalData.procedure_time || '[HH:MM]'} foi confirmado.\n📍 Esteja no ponto de embarque com antecedência. Bom procedimento!`;
 
-    return await saveAndSendMessage(supabase, sock, telefone, conversationId, msgConfirmacao);
+    return await saveAndSendMessage(supabase, sock, telefone, conversationId, pushMsg);
   }
 
-  // Verificar se todos os campos obrigatórios estão preenchidos
-  const REQUIRED = ['patient_name', 'patient_phone', 'procedure_type',
-    'procedure_date', 'location', 'boarding_point'];
-
-  const allCollected = REQUIRED.every(f =>
-    updatedData[f] !== undefined && updatedData[f] !== null && updatedData[f] !== ''
-  );
-
-  if (allCollected && !flowData.attachment_requested) {
-    await supabase.from('conversations')
-      .update({ flow_data: { ...updatedData, attachment_requested: true } })
-      .eq('id', conversationId);
-
-    return await saveAndSendMessage(supabase, sock, telefone, conversationId,
-      '📎 Quase pronto! Por favor, envie uma *foto* do seu comprovante ou encaminhamento médico.\n\n_Se não tiver, digite *pular*_');
-  }
-
-  // Se não coletou tudo, apenas atualizar flow_data e mandar msg original da IA
+  // Se 'em_andamento'
   await supabase.from('conversations')
     .update({ flow_data: updatedData })
     .eq('id', conversationId);
 
   if (updatedJSON.message) {
     return await saveAndSendMessage(supabase, sock, telefone, conversationId, updatedJSON.message);
+  } else {
+    // Fallback caso a IA não retorne a chave "message" preenchida
+    return await saveAndSendMessage(supabase, sock, telefone, conversationId, "Certo, entendi. Pode me confirmar ou informar o próximo detalhe por favor?");
   }
-
-  return { texto: null, transferido: false };
 }
 
 export async function processarMensagemComIA(telefone, mensagem, mediaUrl = null, sock = null) {
@@ -246,7 +236,7 @@ export async function processarMensagemComIA(telefone, mensagem, mediaUrl = null
   }
 
   // 2. Buscar histórico e Configurações (RAG)
-  const [{ data: historico }, { data: adminSettings }, { data: boardingData }] = await Promise.all([
+  const [{ data: historico }, { data: systemSettingsRows }, { data: boardingData }] = await Promise.all([
     supabase
       .from("messages")
       .select("sender, content")
@@ -254,9 +244,8 @@ export async function processarMensagemComIA(telefone, mensagem, mediaUrl = null
       .order("created_at", { ascending: false })
       .limit(20),
     supabase
-      .from("admin_settings")
-      .select("settings")
-      .single(),
+      .from("system_settings")
+      .select("key, value"),
     supabase
       .from("boarding_locations")
       .select("neighborhood, point_name")
@@ -289,11 +278,8 @@ export async function processarMensagemComIA(telefone, mensagem, mediaUrl = null
     flowData = typeof convData.flow_data === "string" ? JSON.parse(convData.flow_data) : convData.flow_data;
   }
 
-  if (flowData.attachment_requested) {
-    return await handleExtractedData(conversationId, targetJid, {}, mensagem, mediaUrl, sock);
-  }
-
-  const organizationId = convData?.organization_id;
+  // Não faremos return imediato de flowData.attachment_requested.
+  // Delegaremos para o LLM gerenciar everything.
 
   // Tentar buscar contexto RAG (pode falhar se embeddings não estiverem configurados)
   let contextoRAG = null;
@@ -307,7 +293,91 @@ export async function processarMensagemComIA(telefone, mensagem, mediaUrl = null
 
   const missingFieldsMsg = "Analise os DADOS JÁ COLETADOS. Se algum campo do formato JSON abaixo estiver nulo ou vazio, pergunte explicitamente ao paciente. NÂO encerre a coleta até ter TODOS os campos.";
 
-  const ragContext = adminSettings?.settings?.ai_knowledge_base || "Sem base de conhecimento adicional fornecida pelo admin.";
+  let ragContext = "Sem base de conhecimento adicional fornecida pelo admin.";
+  let persona = "Clara, assistente virtual simpática da Secretaria Municipal de Saúde de Angicos-RN.";
+  let instrucoesExtras = "";
+  let avisos = "";
+
+  let aiCreativity = 0.7;
+  let serviceHoursActive = false;
+  let serviceHoursStart = "08:00";
+  let serviceHoursEnd = "18:00";
+  let welcomeMessageLocal = "Olá! Seja bem-vindo ao atendimento.";
+
+  // Transform db records into object
+  let s = {};
+  if (systemSettingsRows && systemSettingsRows.length > 0) {
+    systemSettingsRows.forEach(row => {
+      s[row.key] = row.value;
+    });
+
+    if (s.ai_persona) persona = s.ai_persona;
+    if (s.ai_instructions) instrucoesExtras = `\nINSTRUÇÕES ADICIONAIS DE CONDUTA:\n${s.ai_instructions}\n`;
+    if (s.bot_notices) avisos = `\nAVISOS IMPORTANTES E RECADOS:\n${s.bot_notices}\n`;
+
+    if (s.ai_creativity !== undefined) aiCreativity = parseFloat(s.ai_creativity);
+    if (s.welcome_message) welcomeMessageLocal = s.welcome_message;
+    if (s.service_hours) {
+      serviceHoursActive = !!s.service_hours.active;
+      serviceHoursStart = s.service_hours.start || "08:00";
+      serviceHoursEnd = s.service_hours.end || "18:00";
+    }
+
+    if (s.ai_knowledge_base) {
+      try {
+        const kbObj = typeof s.ai_knowledge_base === 'string' ? JSON.parse(s.ai_knowledge_base) : s.ai_knowledge_base;
+        let combined = [];
+        for (const [cat, text] of Object.entries(kbObj)) {
+          if (text && typeof text === 'string' && text.trim().length > 0) {
+            combined.push(`--- DOMÍNIO / CATEGORIA: ${cat.toUpperCase()} ---\n${text}`);
+          }
+        }
+        if (combined.length > 0) {
+          ragContext = combined.join('\n\n');
+        }
+      } catch (e) {
+        ragContext = s.ai_knowledge_base;
+      }
+    }
+  }
+
+  // Interceptação de Horário de Atendimento
+  if (serviceHoursActive) {
+    const now = new Date();
+    // Converter para fuso horário do Brasil
+    const brTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+    const currentHour = brTime.getHours();
+    const currentMin = brTime.getMinutes();
+    const currentTotalMins = currentHour * 60 + currentMin;
+
+    const [startH, startM] = serviceHoursStart.split(':').map(Number);
+    const startTotalMins = startH * 60 + startM;
+
+    const [endH, endM] = serviceHoursEnd.split(':').map(Number);
+    const endTotalMins = endH * 60 + endM;
+
+    let isOutsideHours = false;
+
+    if (startTotalMins <= endTotalMins) {
+      // Normal de 08:00 as 18:00
+      if (currentTotalMins < startTotalMins || currentTotalMins > endTotalMins) {
+        isOutsideHours = true;
+      }
+    } else {
+      // Virada de madrugada, ex: 22:00 as 06:00
+      if (currentTotalMins < startTotalMins && currentTotalMins > endTotalMins) {
+        isOutsideHours = true;
+      }
+    }
+
+    // Se for a primeira mensagem ou fora do horário recusa atendimento automatizado via IA
+    if (isOutsideHours) {
+      console.log(`Mensagem recebida fora do horário comercial (${serviceHoursStart} - ${serviceHoursEnd}). Restringindo IA.`);
+
+      const txtFora = `Olá! Nosso horário de atendimento no momento é das ${serviceHoursStart} às ${serviceHoursEnd}. Por favor, aguarde ou retorne amanhã nesse horário!\n\n${s.bot_notices || ''}`;
+      return await saveAndSendMessage(supabase, sock, telefone, conversationId, txtFora);
+    }
+  }
 
   // Format boarding locations for prompt
   const locationsMap = {};
@@ -322,54 +392,101 @@ export async function processarMensagemComIA(telefone, mensagem, mediaUrl = null
     .join('\n');
   if (!locationsString) locationsString = "Nenhum local cadastrado. Aceite o que o paciente disser.";
 
+  const emojiNumbers = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+  let neighborhoodsString = Object.keys(locationsMap)
+    .map((n, idx) => `${emojiNumbers[idx % 10]} Bairro: ${n}`)
+    .join('\n');
+  if (!neighborhoodsString) neighborhoodsString = "Nenhum bairro cadastrado.";
+
   const dynamicSystemPrompt = `
-Você é Clara, assistente virtual simpática da Secretaria Municipal de Saúde de Angicos-RN.
-Ajuda cidadãos a solicitar transporte gratuito para consultas/exames.
+Você é ${persona}
+Ajuda cidadãos com saúde e transporte gratuito.
 HOJE É: ${dataHoraAtual}
+${avisos}${instrucoesExtras}
 
-REGRAS:
-1. Sem viagens fins de semana (sábado/domingo).
-2. Só para consultas/exames médicos agendados.
-3. Linguagem simples (muitos usuários são idosos).
-4. CRÍTICO: Faça APENAS UMA pergunta por vez. Não liste múltiplos campos de uma vez. Primeiro colete o nome, depois o telefone, etc. Seja natural como um humano faria.
-5. Entenda linguagem natural: "quinta feira", "amanhã", "10h".
-6. LOCAIS DE EMBARQUE: Ao perguntar o bairro de embarque, OFEREÇA as seguintes opções de Bairros e seus Pontos de referência cadastrados:
-${locationsString}
-Obrigatório que o json extraia exatamente as palavras fornecidas pela lista em "boarding_neighborhood" e "boarding_point".
-7. PROIBIDO: NUNCA diga que o transporte "está agendado" ou escreva uma mensagem de encerramento final. Apenas diga "Aguarde um instante, estou processando..." quando achar que finalizou de coletar tudo.
+OBJETIVO PRINCIPAL E MENU:
+Garantir que todo atendimento comece identificando a intenção do usuário antes de qualquer ação.
+Sempre que iniciar uma conversa ou o usuário não tiver selecionado nada ainda (Ou disser apenas um Bom Dia, Oi, Olá) , você DEVE apresentar o texto de boas vindas inicial: "${welcomeMessageLocal}" e as opções abaixo:
+1️⃣ Fazer uma pergunta
+2️⃣ Agendar transporte/procedimento
+3️⃣ Consultar agendamento existente
 
+COMPORTAMENTOS PROIBIDOS:
+- INICIAR AGENDAMENTO AUTOMATICAMENTE sem que o usuário tenha escolhido a opção 2 explicitamente.
+- ASSUMIR intenção do usuário sem confirmação. Se ele disser apenas "Oi", mostre o menu.
+- PULAR o menu inicial.
+- MISTURAR fluxos (ex: responder pergunta e já emendar pedindo nome para agendar).
+- Iniciar coleta de dados antes da escolha clara da Opção 2.
+- Caso o usuário digite algo fora das opções do menu inicial (e não tenha escolhido ainda), diga que não entendeu The e mostre o menu novamente.
+
+MÁQUINA DE ESTADOS (MEMÓRIA DE FLUXO):
+Com base no histórico da conversa, identifique em qual fluxo o usuário está no momento. NÃO repita o menu se ele já estiver dentro de um fluxo válido, a não ser que ele peça para voltar "menu". Reconheça as intenções tanto pelo número (1,2,3) quanto pelo texto (ex: "quero agendar" = 2).
+
+### SE O USUÁRIO ESCOLHER 1 (FAZER PERGUNTA):
+- Responda dúvidas livremente usando sua base de dados RAG.
+- Responda normalmente e não inicie agendamento.
+
+### SE O USUÁRIO ESCOLHER 2 (AGENDAR):
+Inicie a coleta dos dados obrigatórios. Siga TODAS as regras de Agendamento:
+1. COLETE TODOS OS DADOS (pergunte todos, um por vez). Nunca infira ou gere dados sozinhos.
+2. Campos:
+   - Nome completo
+   - Telefone completo (DDD + Número). NÃO exija formato exato. Se for inteligível, SALVE e prossiga.
+   - Tipo: Consulta OU Exame
+   - Especialidade (consulta) ou tipo de exame
+   - Data do procedimento (DD/MM/AAAA)
+   - Horário do procedimento (HH:MM)
+   - Cidade do local (pergunte explicitamente - nunca assuma Angicos).
+   - Nome do local (Clínica/Hospital)
+   - Precisa de Acompanhante? (Sim/Não)
+   - Motivo do Acompanhante (Se respondeu SIM à pergunta anterior)
+   - Bairro de embarque (Liste TODOS organizados com emojis numéricos como opções clicáveis: \n${neighborhoodsString}\n)
+   - Ponto de embarque (APÓS Bairro válido, Liste TODOS os pontos reais: \n${locationsString}\n Use emojis numéricos para listar)
+   - Foto do comprovante
+3. PERGUNTE UM CAMPO POR VEZ. Não emende duas perguntas.
+4. CANCELAMENTO: Se quiser desistir, pergunte se quer cancelar (SIM p/ cancelar, NÃO p/ voltar).
+5. FOTO OBRIGATÓRIA: Peça apenas ao final dos textos. Se enviar, chegará "[ARQUIVO/IMAGEM RECEBIDA]".
+6. CONFIRMAÇÃO RESUMIDA: Ao final de TUDO (incluindo a foto), mostre o Resumo e pergunte "Está tudo correto? (SIM/NÃO)".
+7. SE SIM, marque "status_agendamento": "confirmado" e mande aguardar.
+
+### SE O USUÁRIO ESCOLHER 3 (CONSULTAR AGENDAMENTO):
+- Solicite os dados para localizar o agendamento (exemplo: "Qual o seu nome completo e a data que você agendou?").
+- Após ele informar, com base nos dados e no seu conhecimento/sistema, retorne as informações do agendamento dele. (Diga as infos que possui ou que não localizou).
+
+---
 BASE DE CONHECIMENTO DISPONÍVEL (RAG):
 ${ragContext}
 
-DADOS JÁ COLETADOS: ${JSON.stringify(flowData)}
-DADOS QUE FALTAM: ${missingFieldsMsg}
+DADOS JÁ COLETADOS (APENAS PARA FLUXO 2): ${JSON.stringify(flowData)}
 
-CRÍTICO: RETORNE APENAS UM JSON VÁLIDO. NÃO USE MARKDOWN. NÃO USE TEXT FORA DO JSON.
-Formato exato esperado:
+CRÍTICO: RETORNE APENAS UM JSON VÁLIDO.
+O JSON deve sempre ser assim:
 {
-  "message": "pergunta a ser feita ao usuário (sua resposta como Clara)",
+  "message": "sua resposta final aqui de acordo com o fluxo escolhido",
+  "status_agendamento": "em_andamento",
+  "has_photo": false,
   "extracted": {
-    "patient_name": "Nome do Paciente",
-    "patient_phone": "Telefone com DDD",
+    "patient_name": "Nome",
+    "patient_phone": "Telefone",
     "procedure_type": "Consulta | Exame",
-    "procedure_name": "Especialidade ou Nome do Exame",
+    "procedure_name": "Especialidade/Exame",
     "procedure_date": "YYYY-MM-DD",
     "procedure_time": "HH:MM",
-    "location": "Nome da Clínica/Hospital",
-    "city": "Angicos",
-    "boarding_neighborhood": "Bairro de Embarque",
+    "city": "Cidade",
+    "location": "Local",
+    "boarding_neighborhood": "Bairro",
     "boarding_point": "Ponto de Referência exato",
     "needs_companion": false,
-    "companion_reason": "Motivo se precisar acompanhante"
-  },
-  "all_collected": false
+    "companion_reason": ""
+  }
 }
 `;
 
+  const inputValue = mediaUrl ? `[ARQUIVO/IMAGEM RECEBIDA] ${mensagem || ''}` : mensagem;
   const messages = [
     { role: "system", content: dynamicSystemPrompt },
     ...mensagensOrdenadas,
-    { role: "user", content: mensagem }
+    { role: "user", content: inputValue }
   ];
 
   let iteracoes = 0;
@@ -385,6 +502,7 @@ Formato exato esperado:
       const completion = await openai.chat.completions.create({
         model: MODEL,
         messages: messages,
+        temperature: aiCreativity,
         response_format: { type: "json_object" } // Exigir JSON
       });
 
@@ -394,10 +512,10 @@ Formato exato esperado:
         try {
           // Tentar extrair do markdown se vier com ```json
           let jsonText = responseMessage.content;
-          if (jsonText.includes('\`\`\`json')) {
-            jsonText = jsonText.split('\`\`\`json')[1].split('\`\`\`')[0];
-          } else if (jsonText.includes('\`\`\`')) {
-            jsonText = jsonText.split('\`\`\`')[1].split('\`\`\`')[0];
+          if (jsonText.includes('```json')) {
+            jsonText = jsonText.split('```json')[1].split('```')[0];
+          } else if (jsonText.includes('```')) {
+            jsonText = jsonText.split('```')[1].split('```')[0];
           }
 
           const aiData = JSON.parse(jsonText.trim());
@@ -410,18 +528,13 @@ Formato exato esperado:
       }
     } catch (error) {
       console.error("Erro na API do OpenRouter:", error);
-      return {
-        texto: "Desculpe, estou com dificuldades técnicas momentâneas. Tente novamente em alguns segundos.",
-        transferido: false
-      };
+      await saveAndSendMessage(supabase, sock, targetJid, conversationId, "Desculpe, estou com dificuldades técnicas momentâneas. Tente novamente em alguns segundos.");
+      return { texto: null, transferido: false };
     }
   }
 
-  return {
-    texto: "Desculpe, tive uma dificuldade técnica. Um atendente irá te ajudar em breve! 😊",
-    transferido: true,
-    motivo: "max_iteracoes_excedido"
-  };
+  await saveAndSendMessage(supabase, sock, targetJid, conversationId, "Desculpe, tive uma dificuldade técnica rápida. Tente de novo! 😊");
+  return { texto: null, transferido: false };
 }
 
 // Helper para salvar a mensagem disparada pela IA no DB

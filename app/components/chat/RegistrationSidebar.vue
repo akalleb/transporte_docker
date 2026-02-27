@@ -90,6 +90,7 @@ onMounted(async () => {
   if (props.activeConversation) {
     initializeForm()
     subscribeToRegistrationUpdates()
+    isBotActive.value = props.activeConversation.is_bot_active ?? true
   }
 })
 

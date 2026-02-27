@@ -42,7 +42,7 @@ definePageMeta({
 
 import type { Ref } from 'vue'
 
-const activeTab = ref('system' as string)
+const activeTab = ref('users' as string)
 const isMobileMenuOpen = ref(false)
 
 const supabase = useSupabaseClient()
@@ -418,16 +418,40 @@ const settings = ref({
   ai_persona: 'Assistente prestativo e profissional',
   ai_creativity: 0.7,
   ai_supervision_level: 'medium',
-  ai_instructions: 'Seja conciso e foque em agendar o transporte.',
+  ai_instructions: '',
   ai_knowledge_base: ''
+})
+const aiKnowledgeObj = ref<Record<string, string>>({
+  geral: '',
+  politicas: '',
+  servicos: '',
+  faq: '',
+  vacinas: '',
+  campanhas: ''
 })
 const loadingSettings = ref(false)
 
 const fetchSettings = async () => {
   loadingSettings.value = true
   try {
-    const data = await $fetch('/api/admin/settings')
-    if (data) settings.value = { ...settings.value, ...data }
+    const response = await $fetch('/api/admin/settings')
+    const data: any = response
+    if (data) {
+        settings.value = { ...settings.value, ...data }
+        if (data.ai_knowledge_base) {
+            try {
+                const parsed = JSON.parse(data.ai_knowledge_base)
+                if (typeof parsed === 'object' && parsed !== null) {
+                    aiKnowledgeObj.value = { ...aiKnowledgeObj.value, ...parsed }
+                } else {
+                    aiKnowledgeObj.value['geral'] = data.ai_knowledge_base
+                }
+            } catch(e) {
+                // Cai aqui se for string antiga antes da conversão para JSON
+                aiKnowledgeObj.value['geral'] = data.ai_knowledge_base
+            }
+        }
+    }
   } catch (err: any) {
     console.error('Erro ao buscar configurações:', err)
     // Tratamento silencioso para não quebrar a tela, mas logar o erro
@@ -470,6 +494,8 @@ const checkStatus = async () => {
 
 const saveSettings = async () => {
   loadingSettings.value = true
+  settings.value.ai_knowledge_base = JSON.stringify(aiKnowledgeObj.value)
+
   try {
     await $fetch('/api/admin/settings', {
       method: 'POST',
@@ -528,19 +554,6 @@ onUnmounted(() => {
       >
         <div class="p-6 space-y-8 pb-32">
           
-          <!-- Grupo: Geral -->
-          <div>
-            <h3 class="px-3 text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Engrenagem</h3>
-            <div class="space-y-1">
-              <button 
-                @click="activeTab = 'system'; isMobileMenuOpen = false"
-                class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
-                :class="activeTab === 'system' ? 'bg-primary/10 text-primary dark:text-primary-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800'"
-              >
-                <ActivityIcon class="w-4 h-4" /> Geral
-              </button>
-            </div>
-          </div>
 
           <!-- Grupo: Pessoas -->
           <div>
@@ -602,13 +615,6 @@ onUnmounted(() => {
               >
                 <MapPinIcon class="w-4 h-4" /> Locais de Embarque
               </button>
-              <button 
-                @click="activeTab = 'procedures'; isMobileMenuOpen = false"
-                class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors"
-                :class="activeTab === 'procedures' ? 'bg-primary/10 text-primary dark:text-primary-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800'"
-              >
-                <BriefcaseIcon class="w-4 h-4" /> Tipos de Consulta/Exame
-              </button>
             </div>
           </div>
 
@@ -648,19 +654,6 @@ onUnmounted(() => {
 
           <!-- CONTEUDO DAS ABAS ENTRA AQUI NO PROXIMO CHUNK -->
 
-          <!-- ABA: Geral (Sistema) -->
-          <div v-if="activeTab === 'system'" class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
-              <h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <ActivityIcon class="w-5 h-5 text-primary" /> Visão Geral do Sistema
-              </h2>
-              <p class="text-sm text-slate-500 mt-1">Status global e parâmetros principais da organização.</p>
-            </div>
-            
-            <div class="p-8 text-center text-slate-500 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-              Módulo de configurações gerais em desenvolvimento...
-            </div>
-          </div>
 
           <!-- ABA: Gestão de Usuários -->
           <div v-if="activeTab === 'users'" class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -903,7 +896,7 @@ onUnmounted(() => {
                   <div class="space-y-2">
                     <label class="text-sm font-bold uppercase text-slate-400">Conteúdo (Markdown)</label>
                     <textarea 
-                      v-model="settings.ai_knowledge_base"
+                      v-model="aiKnowledgeObj[ragCategory]"
                       rows="14"
                       class="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-4 px-4 text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm transition-colors outline-none resize-y font-mono shadow-sm"
                       placeholder="## Título do Tópico&#10;Conteúdo explicativo aqui..."
@@ -914,16 +907,24 @@ onUnmounted(() => {
                 <div class="space-y-4">
                   <div class="space-y-2">
                     <label class="text-sm font-bold uppercase text-slate-400">Categoria/Domínio</label>
-                    <div class="relative">
-                      <select v-model="ragCategory" class="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-4 px-4 text-slate-900 dark:text-white focus:border-primary focus:ring-primary sm:text-sm transition-colors outline-none appearance-none cursor-pointer">
-                          <option value="geral">Geral</option>
-                          <option value="politicas">Políticas</option>
-                          <option value="servicos">Serviços</option>
-                          <option value="faq">FAQ</option>
-                          <option value="vacinas">Vacinação</option>
-                          <option value="campanhas">Campanhas</option>
-                      </select>
-                      <ChevronDownIcon class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                    <div class="flex flex-col gap-2">
+                        <button 
+                            v-for="cat in [
+                                {val:'geral', label:'Geral'}, 
+                                {val:'politicas', label:'Políticas'}, 
+                                {val:'servicos', label:'Serviços'}, 
+                                {val:'faq', label:'FAQ'}, 
+                                {val:'vacinas', label:'Vacinação'}, 
+                                {val:'campanhas', label:'Campanhas'}
+                            ]" 
+                            :key="cat.val"
+                            @click="ragCategory = cat.val"
+                            class="text-left px-4 py-3 rounded-lg border transition-colors flex items-center justify-between text-sm"
+                            :class="ragCategory === cat.val ? 'bg-primary/10 border-primary text-primary dark:text-primary-400 font-bold' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'"
+                        >
+                            {{ cat.label }}
+                            <ChevronRightIcon v-if="ragCategory === cat.val" class="w-4 h-4" />
+                        </button>
                     </div>
                   </div>
                   
@@ -1196,19 +1197,6 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- ABA: Tipos de Procedimento (Placeholder) -->
-          <div v-if="activeTab === 'procedures'" class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
-              <h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <BriefcaseIcon class="w-5 h-5 text-primary" /> Especialidades e Exames
-              </h2>
-              <p class="text-sm text-slate-500 mt-1">Nomenclaturas padronizadas de destinos de viagem.</p>
-            </div>
-            
-            <div class="p-8 text-center text-slate-500 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-              Módulo de Procedimentos em desenvolvimento...
-            </div>
-          </div>
 
           <!-- ABA: WhatsApp / Bot Config -->
           <div v-if="activeTab === 'bot_config'" class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">

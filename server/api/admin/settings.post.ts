@@ -9,7 +9,8 @@ export default defineEventHandler(async (event) => {
     { key: 'ai_persona', value: body.ai_persona, updated_at: new Date() },
     { key: 'ai_creativity', value: body.ai_creativity, updated_at: new Date() },
     { key: 'ai_supervision_level', value: body.ai_supervision_level, updated_at: new Date() },
-    { key: 'ai_instructions', value: body.ai_instructions, updated_at: new Date() }
+    { key: 'ai_instructions', value: body.ai_instructions, updated_at: new Date() },
+    { key: 'ai_knowledge_base', value: body.ai_knowledge_base, updated_at: new Date() }
   ]
 
   const { error } = await client

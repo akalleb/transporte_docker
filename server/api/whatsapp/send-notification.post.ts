@@ -54,7 +54,17 @@ export default defineEventHandler(async (event) => {
 
   try {
     const contactPhone = registration.conversations?.contact_phone
-    const contactJid = registration.conversations?.contact_jid
+    let contactJid = registration.conversations?.contact_jid
+
+    // Assegura que o JID tenha um servidor de provedor de mensageria válido WhatsApp
+    if (contactPhone && !contactJid) {
+      const digits = contactPhone.replace(/[^0-9]/g, '')
+      contactJid = `${digits}@s.whatsapp.net`
+    } else if (contactJid && !contactJid.includes('@s.whatsapp.net') && !contactJid.includes('@g.us') && !contactJid.includes('@lid')) {
+      const digits = contactJid.replace(/[^0-9]/g, '')
+      contactJid = `${digits}@s.whatsapp.net`
+    }
+
     const targetPhone = contactJid || contactPhone
 
     if (targetPhone) {

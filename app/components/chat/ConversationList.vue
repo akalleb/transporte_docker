@@ -19,11 +19,15 @@ const filteredConversations = computed(() => {
 
   // Filtro por abas
   if (selectedTab.value === 'active') {
-    // Em Atendimento: fluxo não completado
-    filtered = props.conversations.filter((c: Conversation) => c.flow_step !== 'completed')
+    // Em Atendimento: status não for closed e não cancelado
+    filtered = props.conversations.filter((c: Conversation) => 
+      c.flow_step !== 'completed' && c.status !== 'closed'
+    )
   } else if (selectedTab.value === 'completed') {
-    // Finalizadas: fluxo completado
-    filtered = props.conversations.filter((c: Conversation) => c.flow_step === 'completed')
+    // Finalizadas: fluxo completado, cancelado ou status closed
+    filtered = props.conversations.filter((c: Conversation) => 
+      c.flow_step === 'completed' || c.status === 'closed'
+    )
   }
 
   // Filtro por busca
