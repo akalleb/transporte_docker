@@ -39,6 +39,7 @@ export default defineNuxtConfig({
     }
   },
   runtimeConfig: {
+    supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     public: {
       whatsappApiUrl: process.env.WHATSAPP_API_URL || 'http://localhost:3001'
     }

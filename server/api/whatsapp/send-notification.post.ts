@@ -1,4 +1,6 @@
-import { serverSupabaseClient } from '#supabase/server'
+import { createClient } from '@supabase/supabase-js'
+import * as fs from 'fs'
+import * as path from 'path'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -11,7 +13,19 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const client = await serverSupabaseClient(event)
+  const config = useRuntimeConfig()
+  const supabaseUrl = config.public.supabase?.url || process.env.SUPABASE_URL || ''
+  const supabaseKey = config.supabaseServiceKey || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('SUPABASE_URL ou SERVICE_KEY não configurado')
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Server configuration error'
+    })
+  }
+
+  const client = createClient(supabaseUrl, supabaseKey)
 
   // 1. Buscar dados do agendamento
   const { data: registration, error: regError } = await client
@@ -21,6 +35,7 @@ export default defineEventHandler(async (event) => {
     .single()
 
   if (regError || !registration) {
+    console.error('Erro ao buscar registration no send-notification:', regError, 'ID buscado:', registrationId)
     throw createError({
       statusCode: 404,
       statusMessage: 'Registration not found'
@@ -102,24 +117,26 @@ export default defineEventHandler(async (event) => {
   }
 
   // 4. Salvar no histórico (Supabase)
-  // Se enviou direto, salva como 'delivered' (para não duplicar envio).
-  // Se falhou, salva como 'sent' (para o Polling tentar depois).
-  const { error: msgError } = await client
-    .from('messages')
-    .insert({
-      conversation_id: registration.conversation_id,
-      sender: 'agent',
-      content: messageText,
-      type: 'text',
-      status: sentDirectly ? 'delivered' : 'sent'
-    })
+  // Se enviou direto, a API do whatsapp-server JÁ salvou. Não precisamos duplicar.
+  // Se falhou, salva como 'pending' (para o Polling tentar depois).
+  if (!sentDirectly) {
+    const { error: msgError } = await client
+      .from('messages')
+      .insert({
+        conversation_id: registration.conversation_id,
+        sender: 'agent',
+        content: messageText,
+        type: 'text',
+        status: 'pending' // pending para o listener do websocket pegar
+      })
 
-  if (msgError) {
-    console.error('Erro ao salvar mensagem no histórico:', msgError)
-    throw createError({
-      statusCode: 500,
-      statusMessage: 'Failed to save message history'
-    })
+    if (msgError) {
+      console.error('Erro ao salvar mensagem no histórico:', msgError)
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Failed to save message history'
+      })
+    }
   }
 
   return {

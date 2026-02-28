@@ -280,18 +280,17 @@ const sendStatusMessage = async (registration: Registration, status: 'approved' 
 
   try {
     console.log(`Enviando notificação para ${registration.patient_name} (${status})...`)
-    const { data, error } = await useFetch('/api/whatsapp/send-notification', {
-      method: 'POST',
-      body: {
-        registrationId: registration.id,
-        status: status
-      }
-    })
-    
-    if (error.value) {
-      console.error('Erro ao enviar notificação:', error.value)
-    } else {
-      console.log('Notificação enviada com sucesso:', data.value)
+    try {
+      const data = await $fetch('/api/whatsapp/send-notification', {
+        method: 'POST',
+        body: {
+          registrationId: registration.id,
+          status: status
+        }
+      })
+      console.log('Notificação enviada com sucesso:', data)
+    } catch (error: any) {
+      console.error('Erro ao enviar notificação:', error.data || error.message)
     }
   } catch (e) {
     console.error('Erro na chamada da API de notificação:', e)

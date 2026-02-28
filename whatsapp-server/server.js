@@ -213,42 +213,17 @@ async function connectToWhatsApp() {
           contact_jid: remoteJid
         })
 
-        // NEW:
-        try {
-          const { data: conversa } = await supabase
-            .from("conversations")
-            .select("is_bot_active, contact_jid")
-            .eq("id", response.data.conversation_id)
-            .single();
+        // NEW: FLUXO DETERMINISTICO (OLD is now NEW again)
+        // O fluxo volta a ser controlado pelo flowController.js e flowSteps.js
+        console.log(`Processando mensagem com FlowController para ${phone}...`);
 
-          if (conversa?.is_bot_active) {
-            console.log(`Processando IA para ${phone}...`);
-            const { texto, transferido, motivo } = await processarMensagemComIA(phone, text, publicUrl, sock);
+        await handleMessage({
+          conversation_id: response.data.conversation_id,
+          content: publicUrl || text,
+          sender: 'contact',
+          type: isImage ? 'image' : (isDocument ? 'document' : 'text')
+        }, sock)
 
-            if (texto) {
-              await sock.sendMessage(remoteJid, { text: texto });
-            }
-
-            if (transferido) {
-              await supabase
-                .from("conversations")
-                .update({ is_bot_active: false })
-                .eq("id", response.data.conversation_id);
-
-              io.emit("bot_transferiu", { telefone: phone, motivo });
-            }
-          }
-        } catch (err) {
-          console.error("Erro ao processar IA:", err);
-        }
-
-        // OLD (Fallback):
-        // await handleMessage({
-        //     conversation_id: response.data.conversation_id,
-        //     content: publicUrl || text, 
-        //     sender: 'contact',
-        //     type: isImage ? 'image' : (isDocument ? 'document' : 'text')
-        // }, sock)
       }
     } catch (err) {
       console.error('Erro ao processar mensagem recebida:', err.message)
@@ -298,7 +273,6 @@ app.post('/send-message', async (req, res) => {
     return res.status(400).json({ error: 'phone e message são obrigatórios' })
   }
 
-  // Buscar contact_jid da conversa (preserva @lid)
   let jid = phone
   if (conversationId) {
     const { data: conv } = await supabase
@@ -339,7 +313,7 @@ app.post('/send-message', async (req, res) => {
         conversation_id: conversationId,
         content: message,
         sender: 'agent',
-        status: 'sent'
+        status: 'delivered'
       })
     }
 

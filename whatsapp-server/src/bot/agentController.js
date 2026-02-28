@@ -127,7 +127,16 @@ async function handleExtractedData(conversationId, telefone, updatedJSON, conten
     attachmentUrl = mediaUrl;
   }
 
-  const updatedData = { ...flowData, ...(updatedJSON.extracted || {}), attachment_url: attachmentUrl };
+  // Filtrar dados nulos ou vazios gerados pela IA para não sobrescrever o que já foi coletado
+  const extractedRaw = updatedJSON.extracted || {};
+  const extractedClean = {};
+  for (const key in extractedRaw) {
+    if (extractedRaw[key] !== null && extractedRaw[key] !== "" && extractedRaw[key] !== "null") {
+      extractedClean[key] = extractedRaw[key];
+    }
+  }
+
+  const updatedData = { ...flowData, ...extractedClean, attachment_url: attachmentUrl };
 
   const status = updatedJSON.status_agendamento || 'em_andamento';
 
@@ -142,6 +151,7 @@ async function handleExtractedData(conversationId, telefone, updatedJSON, conten
     const { data: reg, error } = await supabase
       .from('registrations')
       .insert({
+        organization_id: conv.organization_id,
         conversation_id: conversationId,
         patient_name: finalData.patient_name,
         patient_phone: finalData.patient_phone,
@@ -466,20 +476,16 @@ O JSON deve sempre ser assim:
   "status_agendamento": "em_andamento",
   "has_photo": false,
   "extracted": {
-    "patient_name": "Nome",
-    "patient_phone": "Telefone",
-    "procedure_type": "Consulta | Exame",
-    "procedure_name": "Especialidade/Exame",
-    "procedure_date": "YYYY-MM-DD",
-    "procedure_time": "HH:MM",
-    "city": "Cidade",
-    "location": "Local",
-    "boarding_neighborhood": "Bairro",
-    "boarding_point": "Ponto de Referência exato",
-    "needs_companion": false,
-    "companion_reason": ""
+    "CHAVE_NOVA_1": "VALOR EXTRAÍDO NESTA ÚLTIMA MENSAGEM",
+    "CHAVE_NOVA_2": "VALOR EXTRAÍDO NESTA ÚLTIMA MENSAGEM"
   }
 }
+
+REGRA DE PREENCHIMENTO DO EXTRACTED:
+- O bloco "extracted" DEVE conter APENAS a informação nova que o usuário acabou de fornecer em resposta à sua última pergunta. NUNCA reenvie propriedades que já estão nos "DADOS JÁ COLETADOS".
+- NUNCA invente, presuma ou gere nomes, números ou dados fictícios.
+- Se o usuário escolher uma opção numérica de um Bairro ou Ponto de Embarque, OBRIGATORIAMENTE extraia e SALVE O NOME TEXTUAL REAL dessa opção, NÃO O NÚMERO (ex: se "1" era "Centro", salve "Centro", nunca "1").
+- Os campos aceitáveis para se extrair são APENAS estes: "patient_name", "patient_phone", "procedure_type", "procedure_name", "procedure_date", "procedure_time", "city", "location", "boarding_neighborhood", "boarding_point", "needs_companion", "companion_reason".
 `;
 
   const inputValue = mediaUrl ? `[ARQUIVO/IMAGEM RECEBIDA] ${mensagem || ''}` : mensagem;
