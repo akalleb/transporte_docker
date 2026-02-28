@@ -120,17 +120,25 @@ async function connectToWhatsApp() {
     let text = msg.message?.conversation
       || msg.message?.extendedTextMessage?.text
       || msg.message?.imageMessage?.caption
+      || msg.message?.videoMessage?.caption
+      || msg.message?.documentMessage?.caption
       || ''
 
     const isImage = !!msg.message?.imageMessage
     const isDocument = !!msg.message?.documentMessage
+    const isVideo = !!msg.message?.videoMessage
+    const isAudio = !!msg.message?.audioMessage
+    const isMedia = isImage || isDocument || isVideo || isAudio
 
-    if (!text && (isImage || isDocument)) {
-      text = isImage ? '[IMAGEM]' : '[DOCUMENTO]'
-      console.log('Mídia recebida sem legenda, processando...')
+    if (!text && isMedia) {
+      if (isImage) text = '[IMAGEM]'
+      else if (isVideo) text = '[VÍDEO]'
+      else if (isAudio) text = '[ÁUDIO]'
+      else if (isDocument) text = '[DOCUMENTO]'
+      console.log(`Mídia recebida sem legenda: ${text}, processando...`)
     }
 
-    if (!text) return
+    if (!text && !isMedia) return
 
     let phone = remoteJid.replace('@s.whatsapp.net', '')
     // Remover também @lid se estiver presente
@@ -144,9 +152,15 @@ async function connectToWhatsApp() {
 
     try {
       let publicUrl = null
+      let msgType = 'text'
 
-      // Se for imagem, fazer upload
-      if (isImage || isDocument) {
+      if (isImage) msgType = 'image'
+      else if (isVideo) msgType = 'video'
+      else if (isAudio) msgType = 'audio'
+      else if (isDocument) msgType = 'document'
+
+      // Se for mídia, fazer upload
+      if (isMedia) {
         try {
           console.log('Baixando mídia...')
           const buffer = await downloadMediaMessage(
@@ -155,12 +169,32 @@ async function connectToWhatsApp() {
             { logger: pino({ level: 'silent' }) }
           )
 
+          let mimeType = 'application/octet-stream';
+          let ext = 'bin';
+
+          if (isImage) {
+            mimeType = msg.message.imageMessage.mimetype || 'image/jpeg';
+            ext = mimeType.split('/')[1]?.split(';')[0] || 'jpg';
+          } else if (isVideo) {
+            mimeType = msg.message.videoMessage.mimetype || 'video/mp4';
+            ext = mimeType.split('/')[1]?.split(';')[0] || 'mp4';
+          } else if (isAudio) {
+            mimeType = msg.message.audioMessage.mimetype || 'audio/ogg';
+            ext = mimeType.includes('mp4') ? 'mp4' : 'ogg';
+            if (msg.message.audioMessage.ptt) {
+              mimeType = 'audio/ogg; codecs=opus'; // Padrão WhatsApp PTT
+            }
+          } else if (isDocument) {
+            mimeType = msg.message.documentMessage.mimetype || 'application/pdf';
+            ext = msg.message.documentMessage.fileName?.split('.').pop() || 'pdf';
+          }
+
           // Upload to Supabase Storage
-          const fileName = `whatsapp/${Date.now()}_${phone.replace(/[^0-9]/g, '')}.${isDocument ? 'pdf' : 'jpg'}`
+          const fileName = `whatsapp/${Date.now()}_${phone.replace(/[^0-9]/g, '')}.${ext}`
           const { data, error } = await supabase.storage
             .from('requisicoes') // Bucket correto
             .upload(fileName, buffer, {
-              contentType: isDocument ? 'application/pdf' : 'image/jpeg',
+              contentType: mimeType,
               upsert: false
             })
 
@@ -170,6 +204,17 @@ async function connectToWhatsApp() {
               .getPublicUrl(fileName)
             publicUrl = publicData.publicUrl
             console.log('Mídia salva:', publicUrl)
+
+            // A Mágica do Regex: Embutir tag dentro do texto
+            const cleanMime = mimeType.split(';')[0];
+            const mediaTag = `[MEDIA:${cleanMime}] ${publicUrl}`
+
+            // Substituir ou Anexar?
+            if (['[IMAGEM]', '[VÍDEO]', '[ÁUDIO]', '[DOCUMENTO]'].includes(text.trim())) {
+              text = mediaTag; // Se era só o placeholder, subscreve
+            } else {
+              text = `${text}\n${mediaTag}`; // Se tinha legenda descritiva, anexa ao final
+            }
           } else {
             console.error('Erro upload storage:', error)
           }
@@ -182,7 +227,7 @@ async function connectToWhatsApp() {
       const webhookUrl = `${SUPABASE_URL}/functions/v1/webhook-whatsapp`
       const response = await axios.post(webhookUrl, {
         phone,
-        text,
+        text, // Agora o text carrega a tag regex consigo salvando de forma unificada!
         pushName,
         sender: 'contact',
         contact_jid: remoteJid,
@@ -206,7 +251,7 @@ async function connectToWhatsApp() {
           phone: phone,
           content: text,
           sender: 'contact',
-          type: isImage ? 'image' : (isDocument ? 'document' : 'text'),
+          type: msgType,
           timestamp: new Date().toISOString(),
           pushName: pushName,
           mediaUrl: publicUrl,
@@ -219,9 +264,10 @@ async function connectToWhatsApp() {
 
         await handleMessage({
           conversation_id: response.data.conversation_id,
-          content: publicUrl || text,
+          content: publicUrl || text, // Fica como texto/url pra manter compatibilidade
           sender: 'contact',
-          type: isImage ? 'image' : (isDocument ? 'document' : 'text')
+          type: msgType,
+          mediaUrl: publicUrl // Garantir que passa mediaUrl pro handler também
         }, sock)
 
       }

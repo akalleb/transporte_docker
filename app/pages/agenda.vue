@@ -310,18 +310,15 @@ const updateStatus = async (id: string, status: 'approved' | 'rejected') => {
   } else {
     // Atualização otimista local
     const index = registrations.value.findIndex((r: Registration) => r.id === id)
-  if (index !== -1) {
-    const reg = registrations.value[index]
-    if (reg) {
-      const oldStatus = reg.status
-      reg.status = status
-      
-      // Enviar mensagem apenas se o status mudou
-      if (oldStatus !== status) {
+    if (index !== -1) {
+      const reg = registrations.value[index]
+      if (reg) {
+        reg.status = status
+        
+        // Disparar a notificação para o usuário incondicionalmente no sucesso da transação
         await sendStatusMessage(reg, status)
       }
     }
-  }
   }
 }
 

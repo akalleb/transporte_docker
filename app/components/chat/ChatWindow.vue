@@ -87,6 +87,43 @@ const formatTime = (dateString: string) => {
 const getAvatarUrl = (name: string) => {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=random`
 }
+
+// Parse regex MEDIA tags from string into logic blocks 
+const parseMessageContent = (content: string) => {
+  if (!content) return [{ type: 'text', content: '' }]
+  
+  const blocks: any[] = []
+  const regex = /\[MEDIA:([a-zA-Z0-9/+-]+)\]\s?(https?:\/\/[^\s]+)/g
+  
+  let lastIndex = 0
+  let match
+  
+  while ((match = regex.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      blocks.push({ type: 'text', content: content.substring(lastIndex, match.index).trim() })
+    }
+    
+    const mimeType = match[1] || ''
+    const url = match[2] || ''
+    
+    if (mimeType.startsWith('image/')) blocks.push({ type: 'image', url })
+    else if (mimeType.startsWith('audio/')) blocks.push({ type: 'audio', url })
+    else if (mimeType.startsWith('video/')) blocks.push({ type: 'video', url })
+    else blocks.push({ type: 'document', url })
+    
+    lastIndex = regex.lastIndex
+  }
+  
+  if (lastIndex < content.length) {
+    blocks.push({ type: 'text', content: content.substring(lastIndex).trim() })
+  }
+  
+  if (blocks.length === 0) {
+    blocks.push({ type: 'text', content })
+  }
+  
+  return blocks.filter(b => b.content !== '' || b.url)
+}
 </script>
 
 <template>
@@ -166,22 +203,55 @@ const getAvatarUrl = (name: string) => {
             class="p-1 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800"
             :class="msg.sender === 'agent' ? 'bg-primary rounded-tr-none' : 'bg-white dark:bg-slate-800 rounded-tl-none'"
           >
-            <ImageMessage 
-                v-if="msg.type === 'image' || (msg.media_url && !msg.media_url.endsWith('.pdf'))" 
-                :src="msg.media_url || msg.content" 
-                class="rounded-lg max-w-[250px]"
-            />
-            <div v-else-if="msg.type === 'document' || (msg.media_url && msg.media_url.endsWith('.pdf'))" class="p-2 flex items-center gap-2">
-                <FileTextIcon class="w-8 h-8 text-slate-500" />
-                <a :href="msg.media_url || msg.content" target="_blank" class="text-sm underline text-blue-600 dark:text-blue-400">Ver Documento</a>
-            </div>
-            <p 
-              v-else
-              class="text-sm px-3 py-2"
-              :class="msg.sender === 'agent' ? 'text-slate-900 font-medium' : 'text-slate-700 dark:text-slate-200'"
-            >
-              {{ msg.content }}
-            </p>
+            <!-- FALLBACK MESSAGE (OLD FORMAT) -->
+            <template v-if="!msg.content?.includes('[MEDIA:')">
+                <ImageMessage 
+                    v-if="msg.type === 'image' || (msg.media_url && !msg.media_url.endsWith('.pdf'))" 
+                    :src="msg.media_url || msg.content" 
+                    class="rounded-lg max-w-[250px]"
+                />
+                <div v-else-if="msg.type === 'document' || (msg.media_url && msg.media_url.endsWith('.pdf'))" class="p-2 flex items-center gap-2">
+                    <FileTextIcon class="w-8 h-8 text-slate-500" />
+                    <a :href="msg.media_url || msg.content" target="_blank" class="text-sm underline text-blue-600 dark:text-blue-400">Ver Documento</a>
+                </div>
+                <p 
+                  v-else
+                  class="text-sm px-3 py-2 whitespace-pre-wrap break-words"
+                  :class="msg.sender === 'agent' ? 'text-slate-900 font-medium' : 'text-slate-700 dark:text-slate-200'"
+                >
+                  {{ msg.content }}
+                </p>
+            </template>
+            
+            <!-- NEW REGEX PARSER FORMAT -->
+            <template v-else>
+               <div class="flex flex-col gap-1">
+                   <template v-for="(block, idx) in parseMessageContent(msg.content)" :key="idx">
+                       <p 
+                          v-if="block.type === 'text' && !['[IMAGEM]', '[DOCUMENTO]', '[ÁUDIO]', '[VÍDEO]', '[ARQUIVO/IMAGEM RECEBIDA]'].includes(block.content?.trim())"
+                          class="text-sm px-3 py-2 whitespace-pre-wrap break-words"
+                          :class="msg.sender === 'agent' ? 'text-slate-900 font-medium' : 'text-slate-700 dark:text-slate-200'"
+                       >
+                         {{ block.content }}
+                       </p>
+                       <ImageMessage 
+                          v-else-if="block.type === 'image'" 
+                          :src="block.url" 
+                          class="rounded-lg max-w-[250px]"
+                       />
+                       <div v-else-if="block.type === 'audio'" class="p-2">
+                           <audio :src="block.url" controls class="max-w-[250px] min-w-[200px] h-12 outline-none"></audio>
+                       </div>
+                       <div v-else-if="block.type === 'video'" class="p-2">
+                           <video :src="block.url" controls class="max-w-[250px] rounded-lg max-h-[300px] bg-black"></video>
+                       </div>
+                       <div v-else-if="block.type === 'document'" class="p-2 flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg w-fit">
+                           <FileTextIcon class="w-8 h-8 text-slate-500" />
+                           <a :href="block.url" target="_blank" class="text-sm font-medium underline text-blue-600 dark:text-blue-400 hover:text-blue-800">Ver Documento</a>
+                       </div>
+                   </template>
+               </div>
+            </template>
           </div>
           <div class="flex items-center gap-1" :class="msg.sender === 'agent' ? 'mr-1' : 'ml-1'">
             <span class="text-[10px] text-slate-400">{{ formatTime(msg.created_at) }}</span>
